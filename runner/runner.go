@@ -33,9 +33,14 @@ type Runner struct {
 
 // This is the list (implemented as a map so we can use instance pointers) of
 // currently-running Runner instances.
-var runners struct {
+type runnerList struct {
 	items map[*Runner]bool
 	m     sync.Mutex
+}
+
+var runners = &runnerList{
+	items: map[*Runner]bool{},
+	m:     sync.Mutex{},
 }
 
 // Run accepts a full HAR and begins to replay the contents at the
@@ -104,6 +109,6 @@ func (r *Runner) play(entry *model.Entry) {
 
 // Play performs the request described in the Entry
 func (r *Runner) Play(entry *model.Entry) {
-	fmt.Printf("performing request for %s\n", entry.Request)
+	fmt.Printf("performing request for %v\n", entry.Request)
 	// TODO: do some http stuff
 }

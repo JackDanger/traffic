@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/JackDanger/traffic/parser"
+	"github.com/JackDanger/traffic/runner"
+	"os"
 )
 
 func main() {
@@ -18,8 +21,10 @@ func main() {
 	har, err := parser.HarFrom(*file)
 
 	if err != nil {
-		fmt.Errorf("failed with %s", err)
+		stdout := bufio.NewWriter(os.Stdout)
+		fmt.Fprintf(stdout, "failed with %s", err)
 	}
 
-	fmt.Println(har)
+	r := &runner.Runner{}
+	r.Play(&har.Entries[0])
 }

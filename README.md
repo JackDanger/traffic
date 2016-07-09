@@ -3,36 +3,38 @@
 **Quickstart**
 
 ````bash
-git clone git@git.squareup.com:jackdanger/traffic.git
+git clone https://github.com/JackDanger/traffic.git
 cd traffic
-bundle
-bin/traffic -f -c 5 archives/*.har
+bin/traffic -f -c 5 fixtures/*.har
 ````
 
 ### HAR files and you: instant romance
 
 Webkit can export network activity as a JSON expression of web requests
-and responses called 'HAR' (HTTP Archive) files. These files are ripe
-for replayability because they're easily parsable by simple tools and
-contain (almost) all the information you need to reproduce the original
-request.
+and responses called 'HAR' (HTTP Archive) files. These files capture all
+of the exact requests your browser made and the responses they received
+in an intuitive JSON format.
+
+HAR files make it easy to replay the original request because they're
+easily parsable by simple tools and contain (almost) all the information
+you need to simulate real traffic.
 
 ### Love the PonyDebugger
 
-PonyDebugger is a tool that proxies iOS network traffic through a proxy
-server that exposes all the HTTP requests from the iOS devies in the
-Webkit developer tools UI. This means that you can easily export an
-entire session of HTTP requests from an iOS even if the requests
-happened over SSL and you have no special permissions on the device itself.
+PonyDebugger is a proxy (and iOS library) that captures network traffic
+and shows it to you in the Webkit Web Inspector so you can have the same
+powerful debugging tools as if you were making the requests in a
+browser. This means that you can easily export an entire session of HTTP
+requests from an iOS client.
 
-Traffic is a script for replaying HAR files to simulate load and to
-create real-ish data. It executes the file as-is with a few possible
+Traffic is a tool for replaying HAR files to simulate load and to create
+real-ish data. It executes the file as-is with a few possible
 customizations:
 
 #### GUIDs
 
 You can specify GUIDs in the HAR that are realized at execution time. If
-the string 'GUID1', 'GUID4', etc. appear in your HAR file they will be
+the string 'GUID1', 'GUID4', 'GUID78', etc. appear in your HAR file they will be
 replaced by a session-consistent guid per-thread. So if you're, e.g.,
 creating new objects and persisting them to the server this ensures
 you're not running 10 threads all saving the same object repeatedly.
@@ -41,7 +43,7 @@ you're not running 10 threads all saving the same object repeatedly.
 
 You can specify the level of concurrency under which to run your
 archive(s). Any real site has multiple users operating multiple sessions
-and your simulation testing should reflect that.
+and your traffic simulation should reflect that.
 
 #### Time-shifting
 
@@ -53,9 +55,8 @@ remove or greatly extend the time between two requests.
 
 The reason HAR files aren't typically used is because there's no way to
 connect important information from a response (say, a just-generated
-session token) into the following request(s). Traffic provides a Ruby
-proc-based system that lets you run arbitrary transformations of data
+session token) into the following request(s). Traffic provides a
+regex-based system that lets you run arbitrary transformations of data
 from any request or response to any subsequent one.
 
-
-Questions? Read the source. More questions? Ask jackdanger@
+Pull requests welcome, forks celebrated.

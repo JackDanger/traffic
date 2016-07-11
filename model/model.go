@@ -10,12 +10,12 @@ type Har struct {
 
 // Entry is a single request & response
 type Entry struct {
-	Start    string   `json:"startedDateTime"`
-	TimeMs   uint32   `json:"time"`
-	Request  Request  `json:"request"`
-	Response Response `json:"response"`
-	Cache    cache    `json:"cache"`
-	Timings  timings  `json:"timings"`
+	Start    string    `json:"startedDateTime"`
+	TimeMs   uint32    `json:"time"`
+	Request  *Request  `json:"request"`
+	Response *Response `json:"response"`
+	Cache    cache     `json:"cache"`
+	Timings  timings   `json:"timings"`
 }
 
 // Request represents a single HTTP request
@@ -47,8 +47,8 @@ type Response struct {
 // headers and cookies. The headers are a list of single-element maps, not a
 // single unified map.
 type SingleItemMap struct {
-	Key   string `json:"name"`
-	Value string `json:"value"`
+	Key   *string `json:"name"`
+	Value *string `json:"value"`
 }
 
 type creator struct {

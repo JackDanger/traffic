@@ -1,16 +1,16 @@
 package transforms
 
 import (
-	"github.com/JackDanger/traffic/model"
-	"github.com/JackDanger/traffic/parser"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/JackDanger/traffic/model"
+	util "github.com/JackDanger/traffic/test"
 )
 
 func TestConstantTransformReplacesInRequestURL(t *testing.T) {
-	r := makeRequest(t)
+	r := util.MakeRequest(t)
 
 	transform := &ConstantTransform{
 		Search:  "JackDanger",
@@ -43,7 +43,7 @@ func stringPtr(ss string) *string {
 	return &ss
 }
 func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T) {
-	request := makeRequest(t)
+	request := util.MakeRequest(t)
 	request.Headers = append(request.Headers, model.SingleItemMap{
 		Key:   stringPtr("PreviousKey"),
 		Value: stringPtr("PreviousValue"),
@@ -114,7 +114,7 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 }
 
 func TestHeaderInjectionTransform(t *testing.T) {
-	request := makeRequest(t)
+	request := util.MakeRequest(t)
 
 	if any(request.Headers, func(key, value *string) bool {
 		return *key == "newKey" || *value == "newValue"
@@ -137,8 +137,8 @@ func TestHeaderInjectionTransform(t *testing.T) {
 }
 
 func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
-	request := makeRequest(t)
-	response := makeResponse(t)
+	request := util.MakeRequest(t)
+	response := util.MakeResponse(t)
 
 	// TODO: disallow creating patterns that don't have exactly one capture group
 	requestTransform := &ResponseBodyToRequestHeaderTransform{
@@ -200,28 +200,4 @@ func any(pairs []model.SingleItemMap, f pairwiseFunc) bool {
 		}
 	}
 	return false
-}
-
-// Retrieves one of the entriers from the fixture file
-func makeEntry(t *testing.T) *model.Entry {
-	fixture := "../fixtures/browse-two-github-users.har"
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pathToFixture := cwd + "/" + fixture
-	har, err := parser.HarFrom(pathToFixture)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return &har.Entries[0]
-}
-
-func makeRequest(t *testing.T) *model.Request {
-	return makeEntry(t).Request
-}
-
-func makeResponse(t *testing.T) *model.Response {
-	return makeEntry(t).Response
 }

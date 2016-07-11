@@ -1,19 +1,19 @@
 package runner
 
 import (
-	"github.com/JackDanger/traffic/model"
 	"testing"
+
+	"github.com/JackDanger/traffic/model"
+	util "github.com/JackDanger/traffic/test"
 )
 
 func TestPlay(t *testing.T) {
 	// Given an Entry that contains a Request and a Response perform the request
-	entry := model.Entry{
-		Request: model.Request{},
-	}
+	entry := util.MakeEntry(t)
 	runner := &Runner{
 		Har: &model.Har{
-			Entries: []model.Entry{entry},
+			Entries: []model.Entry{*entry},
 		},
 	}
-	runner.Play(&entry)
+	runner.Play(entry)
 }

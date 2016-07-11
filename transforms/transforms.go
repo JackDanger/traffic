@@ -2,8 +2,6 @@ package transforms
 
 import (
 	"github.com/JackDanger/traffic/model"
-	"regexp"
-	"strings"
 )
 
 // RequestTransform encapsulates a single operation that should be performed on a
@@ -59,42 +57,6 @@ func (t responseProcessor) T(r *model.Response) RequestTransform {
 	return t.Tmethod(r)
 }
 
-// ConstantTransform replaces known constants with function calls throughout a
-// Request. It's useful, for example, to turn all instances of UNIXTIME into
-// the string value (without quotes) of time.Now().Unix() or to replace GUID1,
-// GUID2 with specific, predefined Guids that are constant across the session.
-type ConstantTransform struct {
-	Search  string
-	Replace string
-}
-
-// T is because I don't know how to inherit from a func
-func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
-	// We replace constants when they appear as string values anywhere in the
-	// URL, in Headers (both keys and values) and in Cookies (both keys and
-	// values)
-	if strings.Contains(r.URL, t.Search) {
-		r.URL = strings.Replace(r.URL, t.Search, t.Replace, -1)
-	}
-
-	for _, pairs := range [][]model.SingleItemMap{
-		r.Headers,
-		r.Cookies,
-		r.QueryString,
-	} {
-		for _, pair := range pairs {
-			if strings.Contains(*pair.Key, t.Search) {
-				*pair.Key = strings.Replace(*pair.Key, t.Search, t.Replace, -1)
-			}
-			if strings.Contains(*pair.Value, t.Search) {
-				*pair.Value = strings.Replace(*pair.Value, t.Search, t.Replace, -1)
-			}
-		}
-	}
-
-	return noop
-}
-
 // HeaderInjectionTransform is used to add a specific header to all requests.
 type HeaderInjectionTransform struct {
 	Key   string
@@ -110,58 +72,4 @@ func (t HeaderInjectionTransform) T(r *model.Request) ResponseTransform {
 		Value: &t.Value,
 	})
 	return noop
-}
-
-// ResponseBodyToRequestHeaderTransform executes on every Request/Response
-// loooking for a string in the response body that should be extracted and used
-// in all subsequent request headers. Once the pattern is found this Transform
-// replaces itself with a HeaderInjectionTransform that inserts a specific
-// header into all subsequent requests.
-type ResponseBodyToRequestHeaderTransform struct {
-	Pattern    string // interpreted as a regular expression
-	HeaderName string // which header to put the matched string into
-}
-
-// T is because I don't know how to inherit from a func
-func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransform {
-	regex := regexp.MustCompile(t.Pattern)
-
-	// Find the string as a regular expression in the body somewhere and prepare
-	// a HeaderInjectionTransform with it.
-	matchString := func(r *model.Response) RequestTransform {
-		if r.ContentBody == nil {
-			return nil
-		}
-
-		var found string
-		matches := regex.FindAllStringSubmatch(*r.ContentBody, -1)
-		if len(matches) == 0 {
-			return nil
-		}
-		firstMatch := matches[0]
-		switch {
-		case len(firstMatch) == 0:
-			return nil
-		case len(firstMatch) == 1:
-			// There are no capture groups but the whole thing matched okay
-			found = firstMatch[0]
-		case len(firstMatch) > 1:
-			// just use the first capture group, ignore the rest (TODO: disallow more than one)
-			found = firstMatch[1]
-		}
-		if found == "" {
-			return nil
-		}
-
-		return HeaderInjectionTransform{
-			Key:   t.HeaderName,
-			Value: found,
-		}
-	}
-
-	// wrap this func in a responseProcessor just so it gets run not right now
-	// during the request but later during the response.
-	return responseProcessor{
-		Tmethod: matchString,
-	}
 }

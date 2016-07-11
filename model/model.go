@@ -38,6 +38,7 @@ type Response struct {
 	Headers     []SingleItemMap `json:"headers"`
 	Cookies     []SingleItemMap `json:"cookies"`
 	Content     content         `json:"content"`
+	ContentBody *string         `json:"body,omitempty"` // ContentBody is not present in HAR files
 	RedirectUTL string          `json:"redirectURL"`
 	HeadersSize uint32          `json:"headersSize"`
 	BodySize    uint32          `json:"bodySize"`

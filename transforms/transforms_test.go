@@ -102,47 +102,27 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 		}
 	}
 
-	if !func() bool {
-		for _, pair := range r.Headers {
-			if strings.Contains(*pair.Key, "usedtobePreviousKey") {
-				return true
-			}
-		}
-		return false
-	}() {
+	if !any(r.Headers, func(key, value *string) bool {
+		return strings.Contains(*key, "usedtobePreviousKey")
+	}) {
 		t.Errorf("header key is unchanged: %v", r.Headers)
 	}
 
-	if !func() bool {
-		for _, pair := range r.Headers {
-			if strings.Contains(*pair.Value, "nope.gif") {
-				return true
-			}
-		}
-		return false
-	}() {
+	if !any(r.Headers, func(key, value *string) bool {
+		return strings.Contains(*value, "nope.gif")
+	}) {
 		t.Errorf("header value is unchanged: %v", r.Headers)
 	}
 
-	if !func() bool {
-		for _, pair := range r.Cookies {
-			if strings.Contains(*pair.Value, "Peanut Butter") {
-				return true
-			}
-		}
-		return false
-	}() {
+	if !any(r.Cookies, func(key, value *string) bool {
+		return strings.Contains(*value, "Peanut Butter")
+	}) {
 		t.Errorf("cookie is unchanged: %v", r.Cookies)
 	}
 
-	if !func() bool {
-		for _, pair := range r.QueryString {
-			if *pair.Key == "timezone" && strings.Contains(*pair.Value, "America/Los_Angeles") {
-				return true
-			}
-		}
-		return false
-	}() {
+	if !any(r.QueryString, func(key, value *string) bool {
+		return *key == "timezone" && strings.Contains(*value, "America/Los_Angeles")
+	}) {
 		t.Errorf("querystring is unchanged: %v", r.QueryString)
 	}
 }
@@ -150,14 +130,9 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 func TestHeaderInjectionTransform(t *testing.T) {
 	r := makeRequest(t)
 
-	if func() bool {
-		for _, pair := range r.Headers {
-			if *pair.Key == "newKey" || *pair.Value == "newValue" {
-				return true
-			}
-		}
-		return false
-	}() {
+	if any(r.Headers, func(key, value *string) bool {
+		return *key == "newKey" || *value == "newValue"
+	}) {
 		t.Errorf("New header already exists in request: %v", r.Headers)
 	}
 
@@ -168,14 +143,20 @@ func TestHeaderInjectionTransform(t *testing.T) {
 
 	transform.T(r)
 
-	if !func() bool {
-		for _, pair := range r.Headers {
-			if *pair.Key == "newKey" && *pair.Value == "newValue" {
-				return true
-			}
-		}
-		return false
-	}() {
+	if !any(r.Headers, func(key, value *string) bool {
+		return *key == "newKey" && *value == "newValue"
+	}) {
 		t.Errorf("New header was not added to request: %#v", r.Headers)
 	}
+}
+
+type pairwiseFunc func(key, val *string) bool
+
+func any(pairs []model.SingleItemMap, f pairwiseFunc) bool {
+	for _, pair := range pairs {
+		if f(pair.Key, pair.Value) {
+			return true
+		}
+	}
+	return false
 }

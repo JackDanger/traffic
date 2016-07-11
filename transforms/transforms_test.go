@@ -145,5 +145,37 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 	}() {
 		t.Errorf("querystring is unchanged: %v", r.QueryString)
 	}
+}
 
+func TestHeaderInjectionTransform(t *testing.T) {
+	r := makeRequest(t)
+
+	if func() bool {
+		for _, pair := range r.Headers {
+			if *pair.Key == "newKey" || *pair.Value == "newValue" {
+				return true
+			}
+		}
+		return false
+	}() {
+		t.Errorf("New header already exists in request: %v", r.Headers)
+	}
+
+	transform := &HeaderInjectionTransform{
+		Key:   "newKey",
+		Value: "newValue",
+	}
+
+	transform.T(r)
+
+	if !func() bool {
+		for _, pair := range r.Headers {
+			if *pair.Key == "newKey" && *pair.Value == "newValue" {
+				return true
+			}
+		}
+		return false
+	}() {
+		t.Errorf("New header was not added to request: %#v", r.Headers)
+	}
 }

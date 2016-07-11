@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Transform encapsulates a single operation that should be performed on a
+// RequestTransform encapsulates a single operation that should be performed on a
 // request, a response, or a whole session. This allows a user to specify, for
 // example, which part of the HTTP response should be reused in future requests
 // after getting a response to a successful sign in.
@@ -23,19 +23,29 @@ import (
 //
 // So a transform is an object that will either run every time just as it is
 // (if ResponseTransform returns nil) or it will replace
-// itself by returning a new Transform instance.
+// itself by returning a new RequestTransform instance.
 //
-type Transform interface {
+type RequestTransform interface {
 	T(*model.Request) ResponseTransform
 }
 
-// ResponseTransform (returned from Transform.T()) takes a response and may
-// modify it or do nothing. Then it either returns a new Transform that will
-// replace the Transform that called it on the next Request or it returns nil,
-// signaling that the original Transform should continue to run.
+// ResponseTransform (returned from RequestTransform#T()) takes a response and may
+// modify it or do nothing. Then it either returns a new RequestTransform that will
+// replace the RequestTransform that called it on the next Request or it returns nil,
+// signaling that the original RequestTransform should continue to run.
 type ResponseTransform interface {
-	T(*model.Response) *Transform
+	T(*model.Response) *RequestTransform
 }
+
+// If a RequestTransform has no intention of being replaced by the return value of its
+// ResponseTransform it can return this.
+type noopResponseTransform struct{}
+
+func (t *noopResponseTransform) T(*model.Response) *RequestTransform {
+	return nil
+}
+
+var noop ResponseTransform = &noopResponseTransform{}
 
 // ConstantTransform replaces known constants with function calls throughout a
 // Request. It's useful, for example, to turn all instances of UNIXTIME into
@@ -46,18 +56,7 @@ type ConstantTransform struct {
 	Replace string
 }
 
-// If a Transform has no intention of being replaced by the return value of its
-// ResponseTransform it can return this.
-type noopResponseTransform struct{}
-
-func (t *noopResponseTransform) T(*model.Response) *Transform {
-	return nil
-}
-
-var noop = &noopResponseTransform{}
-
-// T exists because I don't know of a way to make Transform and
-// ResponseTransform subclassed from functions directly.
+// T is because I don't know how to inherit from a func
 func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
 	// We replace constants when they appear as string values anywhere in the
 	// URL, in Headers (both keys and values) and in Cookies (both keys and
@@ -82,4 +81,27 @@ func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
 	}
 
 	return noop
+}
+
+// HeaderInjectionTransform is used to add a specific header to all requests.
+type HeaderInjectionTransform struct {
+	Key   string
+	Value string
+}
+
+// T is because I don't know how to inherit from a func
+func (t *HeaderInjectionTransform) T(r *model.Request) ResponseTransform {
+	r.Headers = append(r.Headers, model.SingleItemMap{
+		Key:   &t.Key,
+		Value: &t.Value,
+	})
+	return noop
+}
+
+// ResponseBodyToRequestHeaderTransform executes on every Request/Response
+// loooking for a string in the response body that should be extracted and used
+// in all subsequent request headers. Once the pattern is found this Transform
+// replaces itself with a HeaderInjectionTransform that inserts a specific
+// header into all subsequent requests.
+type ResponseBodyToRequestHeaderTransform struct {
 }

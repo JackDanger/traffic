@@ -15,7 +15,7 @@ type Operation uint16
 
 const (
 	// Pause tells the Runner goroutine to sleep until another operation is sent
-	Pause Operation = 0
+	Pause Operation = iota
 	// Stop will halt the goroutine and remove it from the running tasks
 	Stop
 	// Continue will un-pause a goroutine. Has no effect on non-paused goroutines.
@@ -34,15 +34,16 @@ type Executor interface {
 
 // Runner encapsulates a single goroutine reading and replaying a HAR
 type Runner struct {
-	m                  sync.Mutex
-	Har                *model.Har
-	Running            bool
-	StartTime          time.Time
-	operationChannel   chan Operation
-	requestChannel     chan *model.Entry
-	requestTransforms  []transforms.RequestTransform
-	responseTransforms []transforms.ResponseTransform
-	Executor           Executor
+	m                      sync.Mutex
+	Har                    *model.Har
+	Running                bool
+	StartTime              time.Time
+	operationChannel       chan Operation
+	currentEntryNumChannel chan int
+	doneChannel            chan bool
+	requestTransforms      []transforms.RequestTransform
+	responseTransforms     []transforms.ResponseTransform
+	Executor               Executor
 }
 
 // This is the list (implemented as a map so we can use instance pointers) of
@@ -59,17 +60,20 @@ var runners = &runnerList{
 
 // Run accepts a full HAR and begins to replay the contents at the
 // originally-recorded timing intervals.
-func Run(har *model.Har) *Runner {
-	replay := &Runner{
-		operationChannel: make(chan Operation),
-		StartTime:        time.Now(),
-		Har:              har,
-		Running:          false,
+func Run(har *model.Har, executor Executor) *Runner {
+	runner := &Runner{
+		operationChannel:       make(chan Operation, 1),
+		StartTime:              time.Now(),
+		Har:                    har,
+		Running:                false,
+		doneChannel:            make(chan bool),
+		currentEntryNumChannel: make(chan int, 1),
+		Executor:               executor,
 	}
 
-	replay.begin()
+	runner.begin()
 
-	return replay
+	return runner
 }
 
 func (r *Runner) begin() error {
@@ -82,42 +86,58 @@ func (r *Runner) begin() error {
 	runners.items[r] = true
 	r.Running = true
 
+	// And enqueue processing of the first entry
+	r.currentEntryNumChannel <- 0
+	r.operationChannel <- Continue
+
+	// This is the main goroutine that runs all of the entries in the HAR once it
+	// finishes the last entry it exits.
 	go func() {
-		select {
-		// Check if we've been asked to pause or continue or shut down
-		case operation := <-r.operationChannel:
-			if operation == Pause {
-				r.m.Lock()
-				r.Running = false
-				r.m.Unlock()
-			} else if operation == Continue {
-				r.m.Lock()
-				r.Running = true
-				r.m.Unlock()
-			} else if operation == Stop {
-				r.m.Lock()
-				defer r.m.Unlock()
+		for {
+			select {
+			// Check if we've been asked to pause or continue or shut down
+			case operation := <-r.operationChannel:
+				if operation == Pause {
+					r.m.Lock()
+					r.Running = false
+					r.m.Unlock()
+				} else if operation == Continue {
+					r.m.Lock()
+					r.Running = true
+					r.m.Unlock()
+				} else if operation == Stop {
+					r.m.Lock()
+					defer r.m.Unlock()
 
-				r.Running = false
+					r.Running = false
 
-				runners.m.Lock()
-				defer runners.m.Unlock()
-				defer delete(runners.items, r) // Remove this instance from the list
-				return                         // This is where we shut the whole routine down
+					runners.m.Lock()
+					defer runners.m.Unlock()
+					defer delete(runners.items, r) // Remove this instance from the list
+					r.doneChannel <- true
+					return // This is where we shut the whole routine down
+				}
+			// Check if there's another request to make. If so, play it (play() spawns
+			// a goroutine and returns immediately)
+			case entryIndex := <-r.currentEntryNumChannel:
+				if len(r.Har.Entries) > entryIndex {
+					r.play(entryIndex)
+				} else {
+					// We're done!
+					r.operationChannel <- Stop
+				}
 			}
-		// Check if there's another request to make. If so, play it (play() spawns
-		// a goroutine and returns immediately)
-		case entry := <-r.requestChannel:
-			r.play(entry)
 		}
 
 	}()
 	return nil
 }
 
-func (r *Runner) play(entry *model.Entry) {
+func (r *Runner) play(index int) {
+	entry := r.Har.Entries[index]
 	go func() {
-		r.Play(entry)
+		r.Play(&entry)
+		r.currentEntryNumChannel <- index + 1
 	}()
 }
 

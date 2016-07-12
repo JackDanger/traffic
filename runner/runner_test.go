@@ -8,6 +8,73 @@ import (
 	util "github.com/JackDanger/traffic/test"
 )
 
+func TestPlay(t *testing.T) {
+
+	executor := testExecutor(t)
+	entry := util.MakeEntry(t)
+	runner := &Runner{
+		Har: &model.Har{
+			Entries: []model.Entry{*entry},
+		},
+		Executor: executor,
+	}
+	runner.Play(entry)
+
+	if len(*executor.ProcessedRequests) == 0 {
+		t.Errorf("Expected number of performed requests to be higher than 0, was: %d", len(*executor.ProcessedRequests))
+	}
+}
+
+func TestPlayWholeHar(t *testing.T) {
+
+	har := util.Fixture(t)
+	entryCount := len(har.Entries)
+	if len(har.Entries) <= 1 {
+		t.Fatalf("Expected there to be at least 2 entries, found %d", len(har.Entries))
+	}
+
+	executor := testExecutor(t)
+	instance := Run(&har, executor)
+
+	select {
+	case <-instance.doneChannel:
+		// wait for instance to send something on it's completion channel
+	}
+	if len(*executor.ProcessedRequests) < entryCount {
+		t.Errorf("expected to process all %d entries, only processed %d", entryCount, len(*executor.ProcessedRequests))
+	}
+}
+
+func TestPlayWholeHarWithComplexTranforms(t *testing.T) {
+	har := util.Fixture(t)
+	entryCount := len(har.Entries)
+	if len(har.Entries) <= 1 {
+		t.Fatalf("Expected there to be at least 2 entries, found %d", len(har.Entries))
+	}
+
+	executor := testExecutor(t)
+	instance := Run(&har, executor)
+
+	select {
+	case <-instance.doneChannel:
+		// wait for instance to send something on it's completion channel
+	}
+	if len(*executor.ProcessedRequests) < entryCount {
+		t.Errorf("expected to process all %d entries, only processed %d", entryCount, len(*executor.ProcessedRequests))
+	}
+}
+
+// TODO: Test all of
+// * pausing & continuing
+// * stopping and trying to continue
+// * repeatedly pausing/continuing
+// * two identical runners at once don't clobber each other's data (esp. Entry contents)
+
+// TODO: implement all of
+// * time-shifting (makes tests faster!)
+
+// Helpers
+
 type mockRequest struct {
 	Verb        string
 	URL         string
@@ -16,11 +83,20 @@ type mockRequest struct {
 	Cookies     []model.SingleItemMap
 }
 type mockExecutor struct {
-	Requests *[]mockRequest
-	t        *testing.T
-	Response model.Response
+	ProcessedRequests *[]mockRequest
+	t                 *testing.T
+	Response          model.Response
 }
 
+func testExecutor(t *testing.T) mockExecutor {
+	return mockExecutor{
+		t:                 t,
+		Response:          *util.MakeResponse(t),
+		ProcessedRequests: &[]mockRequest{},
+	}
+}
+
+// Given a request copy it to a local list of processed reqeusts.
 func (e mockExecutor) clone(verb string, original model.Request) {
 	// Roundtrip the request through JSON to make a deep copy
 	r := model.Request{}
@@ -33,7 +109,7 @@ func (e mockExecutor) clone(verb string, original model.Request) {
 		e.t.Fatal(err)
 	}
 
-	*e.Requests = append(*e.Requests, mockRequest{
+	*e.ProcessedRequests = append(*e.ProcessedRequests, mockRequest{
 		Verb:        verb,
 		URL:         r.URL,
 		Headers:     r.Headers,
@@ -67,25 +143,3 @@ func (e mockExecutor) Patch(r model.Request) (model.Response, error) {
 }
 
 var _ Executor = mockExecutor{}
-
-func TestPlay(t *testing.T) {
-
-	testExecutor := mockExecutor{
-		t:        t,
-		Response: *util.MakeResponse(t),
-		Requests: &[]mockRequest{},
-	}
-
-	entry := util.MakeEntry(t)
-	runner := &Runner{
-		Har: &model.Har{
-			Entries: []model.Entry{*entry},
-		},
-		Executor: testExecutor,
-	}
-	runner.Play(entry)
-
-	if len(*testExecutor.Requests) == 0 {
-		t.Errorf("Expected number of performed requests to be higher than 0, was: %d", len(*testExecutor.Requests))
-	}
-}

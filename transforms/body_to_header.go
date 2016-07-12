@@ -30,8 +30,8 @@ import (
 type ResponseBodyToRequestHeaderTransform struct {
 	Pattern    string // interpreted as a regular expression
 	HeaderName string // which header to put the matched string into
-	Before     string // What to put into the header key before the match
-	After      string // What to put into the header key after the match
+	Before     string // What to put into the header value before the match
+	After      string // What to put into the header value after the match
 }
 
 // T is because I don't know how to inherit from a func
@@ -44,7 +44,6 @@ func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransf
 	// again until an appropriate match _is_ found.
 	matchString := func(r *model.Response) RequestTransform {
 		if r.ContentBody == nil {
-			println("no ocntent")
 			return t
 		}
 

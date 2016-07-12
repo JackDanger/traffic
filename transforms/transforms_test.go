@@ -184,8 +184,8 @@ func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
 	if replacement.Value != "ABC123-00123" {
 		t.Errorf("Expected HeaderName to be ABC123-00123, got: %s", replacement.Value)
 	}
-
 }
+
 func TestResponseWithComplexBodyToRequestHeaderTransform(t *testing.T) {
 	request := util.MakeRequest(t)
 	response := util.MakeResponse(t)
@@ -238,6 +238,107 @@ func TestResponseWithComplexBodyToRequestHeaderTransform(t *testing.T) {
 	}
 	if replacement.Value != "user(OWNER-ABC123-00123)" {
 		t.Errorf("Expected HeaderName to be user(OWNER-ABC123-00123), got: %s", replacement.Value)
+	}
+}
+
+func TestHeaderPatternToHeaderTransform(t *testing.T) {
+	request := util.MakeRequest(t)
+	response := util.MakeResponse(t)
+
+	// TODO: disallow creating patterns that don't have zero or one capture groups
+	requestTransforms := []ResponseHeaderToRequestHeaderTransform{
+		{
+			ResponseKey: "Role",
+			Pattern:     "I'm in the (.+) role",
+			RequestKey:  "Role",
+			Before:      "user(",
+			After:       "-ROLE)",
+		},
+		{
+			ResponseKey: "AccountNumber",
+			Pattern:     ".+",
+			RequestKey:  "account",
+			// omitting before/after
+		},
+		{
+			// omitting ResponseKey
+			Pattern:    "token-(?P<auth>[\\w-]+-\\d{5})",
+			RequestKey: "Authorization-ID",
+			Before:     "user(SESSION-",
+			After:      ")",
+		},
+	}
+
+	// When the headers don't match none of the transforms apply
+	for _, transform := range requestTransforms {
+		replacementTransform := transform.T(request).T(response)
+		if replacementTransform != transform {
+			// the transform thinks it found a match and produced a HeaderInjectionTransform
+			t.Errorf("The replacementTransform wasn't the same as the original: %#v, %#v", replacementTransform, transform)
+		}
+	}
+
+	// Deliberately define headers in the wrong order to find any ordering
+	// constraints that could be introduced with a future regression.
+
+	//Add a token that matches the third transform
+	response.Headers = append(response.Headers, model.SingleItemMap{
+		Key:   util.StringPtr("Session-27sfalkjl2k323"),
+		Value: util.StringPtr("token-XMyAuthX-98765"),
+	})
+	// Add an accunt number that matches the second transform
+	response.Headers = append(response.Headers, model.SingleItemMap{
+		Key:   util.StringPtr("AccountNumber"),
+		Value: util.StringPtr("some account number"),
+	})
+	// Add a role header to match the first transform
+	response.Headers = append(response.Headers, model.SingleItemMap{
+		Key:   util.StringPtr("Role"),
+		Value: util.StringPtr("I'm in the accounting role"),
+	})
+
+	// let's take a look at the replacements that are produced
+	headerTransforms := []HeaderInjectionTransform{}
+	// When the headers match then the transforms should all swap themselves out
+	// for HeaderInjectionTransforms
+	for i, transform := range requestTransforms {
+		replacementTransform := transform.T(request).T(response)
+		if replacementTransform == transform {
+			t.Fatalf("Expected a response header to match transform #%d and to replace it with a HeaderInjectionTransform replacement", i)
+		}
+		headerTransforms = append(headerTransforms, *replacementTransform.(*HeaderInjectionTransform))
+	}
+
+	if headerTransforms[0].Key != "Role" || headerTransforms[0].Value != "user(accounting-ROLE)" {
+		t.Errorf("Wrong transform found: %#v", headerTransforms[0])
+	}
+	if headerTransforms[1].Key != "account" || headerTransforms[1].Value != "some account number" {
+		t.Errorf("Wrong transform found: %#v", headerTransforms[1])
+	}
+	if headerTransforms[2].Key != "Authorization-ID" || headerTransforms[2].Value != "user(SESSION-XMyAuthX-98765)" {
+		t.Errorf("Wrong transform found: %#v", headerTransforms[2])
+	}
+
+	// And now let's apply them
+	for _, transform := range headerTransforms {
+		transform.T(request).T(response)
+	}
+
+	// And check that the transforms did their work
+	if !util.Any(request.Headers, func(key, value *string) bool {
+		return *key == "Role" && *value == "user(accounting-ROLE)"
+	}) {
+		t.Error("no header matched the first transform")
+	}
+	if !util.Any(request.Headers, func(key, value *string) bool {
+		return *key == "account" && *value == "some account number"
+	}) {
+		t.Error("no header matched the second transform")
+	}
+	if !util.Any(request.Headers, func(key, value *string) bool {
+		return *key == "Authorization-ID" && *value == "user(SESSION-XMyAuthX-98765)"
+	}) {
+		t.Error("no header matched the third transform")
 	}
 
 }

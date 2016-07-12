@@ -144,24 +144,24 @@ func (r *Runner) play(index int) {
 
 // Play performs the request described in the Entry
 func (r *Runner) Play(entry *model.Entry) error {
-	transformedRequest := r.transformRequest(entry.Request)
+	transformedRequest := r.transformRequest(*entry.Request)
 
 	var err error
 	var response model.Response
 
 	switch entry.Request.Method {
 	case "GET":
-		response, err = r.Executor.Get(*transformedRequest)
+		response, err = r.Executor.Get(transformedRequest)
 	case "POST":
-		response, err = r.Executor.Post(*transformedRequest)
+		response, err = r.Executor.Post(transformedRequest)
 	case "PUT":
-		response, err = r.Executor.Put(*transformedRequest)
+		response, err = r.Executor.Put(transformedRequest)
 	case "DELETE":
-		response, err = r.Executor.Delete(*transformedRequest)
+		response, err = r.Executor.Delete(transformedRequest)
 	case "HEAD":
-		response, err = r.Executor.Head(*transformedRequest)
+		response, err = r.Executor.Head(transformedRequest)
 	case "PATCH":
-		response, err = r.Executor.Patch(*transformedRequest)
+		response, err = r.Executor.Patch(transformedRequest)
 	}
 
 	r.updateTransformsFromResponse(&response)
@@ -174,32 +174,37 @@ func (r *Runner) Play(entry *model.Entry) error {
 
 // transformRequest modifies the request object and sets up a list of
 // transforms to execute against the upcoming response.
-func (r *Runner) transformRequest(request *model.Request) *model.Request {
-	var _responseTransforms = make([]transforms.ResponseTransform, len(r.requestTransforms))
-	println(len(_responseTransforms))
-	for i, transform := range r.requestTransforms {
-		responseTransform := transform.T(request)
+func (r *Runner) transformRequest(request model.Request) model.Request {
+	// Clear out any ResponseTransforms set by previous requests. There will
+	// always be exactly as many response transforms as request transforms
+	// because each kind produces the other.
+	r.responseTransforms = make([]transforms.ResponseTransform, len(r.requestTransforms))
+
+	for _, requestTransform := range r.requestTransforms {
+		responseTransform := requestTransform.T(&request)
 		if responseTransform == nil {
 			panic("a transform should never ever return anything but another transform")
 		}
-		_responseTransforms[i] = responseTransform
+		r.responseTransforms = append(r.responseTransforms, responseTransform)
 	}
-	// We replace the response transforms every single request
-	r.responseTransforms = _responseTransforms
+
+	// The RequestTransform instances may have modified the request
 	return request
 }
 
-// updateTransformsFromResponse executes transforms which may read response
-// object and which return a set of request transforms to be used in the next
-// request.
+// updateTransformsFromResponse is the inverse of transformRequest. It's not
+// really a "transformResponse" though because we don't bother modifying a
+// response we get from a remote server, we just use the data in the response
+// to produce new RequestTransform instances to use in the future.
 func (r *Runner) updateTransformsFromResponse(response *model.Response) {
-	var _requestTransforms = make([]transforms.RequestTransform, len(r.responseTransforms))
-	for i, transform := range r.responseTransforms {
+
+	// There are always exactly as many requestTransforms as responseTransforms
+	r.requestTransforms = make([]transforms.RequestTransform, len(r.responseTransforms))
+	for _, transform := range r.responseTransforms {
 		requestTransform := transform.T(response)
 		if requestTransform == nil {
 			panic("a transform should never ever return anything but another transform")
 		}
-		_requestTransforms[i] = requestTransform
+		r.requestTransforms = append(r.requestTransforms, requestTransform)
 	}
-	r.requestTransforms = _requestTransforms
 }

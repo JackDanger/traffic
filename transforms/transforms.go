@@ -11,19 +11,31 @@ import (
 //
 // # Types of transforms:
 //
-// * A function that takes a request and replaces known CONSTANT by calling a
-//   specific function provided by source code. Returns a function that
-//   takes a response returns nothing. (i.e. it only modifies
-//   requests outbound and does not re-enqueue any function to be run next
-//   time)
-// * A function that takes a request and returns a function that, given a
-//   response, modifies that response somehow. It then returns a function
-//   which is to be enqueued in the list of further transformations.
+// * A function that takes a request (and may modify it) and returns a function
+//   that takes a response (which it may modify) that then returns the original
+//   function.
 //
-// So a transform is an object that will either run every time just as it is
-// (if ResponseTransform returns nil) or it will replace
-// itself by returning a new RequestTransform instance.
+//   Example:
+//     responseTransform := requestTransform.T(aRequest)
+//     if requestTransform != responseTransform.T(aResponse) {
+//       panic("no, seriously, the original transform should be returned")
+//     }
 //
+// * A function that takes a request (and may modify it) and returns a function
+//   that takes a response (which it may modify) that then returns the a new
+//   function. This will replace the original one and the next request/response
+//   cycle there will be this new behavior.
+//
+//   Example:
+//     responseTransform := requestTransform.T(aRequest)
+//     if requestTransform == responseTransform.T(aResponse) {
+//       panic("In this case we expected there to be a new transform produced")
+//     }
+//
+// These transforms are implemented  as objects with a T() method that will
+// either run every time just as they are (if the response transform returns
+// the original request transform) or they will generate a new transform to
+// replace themselves.
 type RequestTransform interface {
 	T(*model.Request) ResponseTransform
 }
@@ -36,8 +48,7 @@ type ResponseTransform interface {
 	T(*model.Response) RequestTransform
 }
 
-// Wraps a RequestTransform in a ResponseTransform that simply returns it. If
-// no requestTransform is set then the T() method returns nil.
+// Wraps a RequestTransform in a ResponseTransform that simply returns it.s
 type passthrough struct {
 	requestTransform RequestTransform
 }
@@ -46,9 +57,8 @@ func (t passthrough) T(*model.Response) RequestTransform {
 	return t.requestTransform
 }
 
-var noop ResponseTransform = &passthrough{}
-
-// A little convenience object that wraps up the method you want to run later.
+// A little convenience object that wraps up a function defined in the
+// RequestTransform to be executed in the ResponseTransform
 type responseProcessor struct {
 	Tmethod func(*model.Response) RequestTransform
 }
@@ -71,5 +81,6 @@ func (t HeaderInjectionTransform) T(r *model.Request) ResponseTransform {
 		Key:   &t.Key,
 		Value: &t.Value,
 	})
-	return noop
+	// Return a transform that just returns this current one.
+	return passthrough{requestTransform: t}
 }

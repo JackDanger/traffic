@@ -21,20 +21,22 @@ func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransf
 
 	// Find the string as a regular expression in the body somewhere and prepare
 	// a HeaderInjectionTransform with it.
+	// If no matches are found we `return t` so this same code is run again and
+	// again until an appropriate match _is_ found.
 	matchString := func(r *model.Response) RequestTransform {
 		if r.ContentBody == nil {
-			return nil
+			return t
 		}
 
 		var found string
 		matches := regex.FindAllStringSubmatch(*r.ContentBody, -1)
 		if len(matches) == 0 {
-			return nil
+			return t
 		}
 		firstMatch := matches[0]
 		switch {
 		case len(firstMatch) == 0:
-			return nil
+			return t
 		case len(firstMatch) == 1:
 			// There are no capture groups but the whole thing matched okay
 			found = firstMatch[0]
@@ -43,7 +45,7 @@ func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransf
 			found = firstMatch[1]
 		}
 		if found == "" {
-			return nil
+			return t
 		}
 
 		return HeaderInjectionTransform{

@@ -34,8 +34,8 @@ func TestConstantTransformReplacesInRequestURL(t *testing.T) {
 		t.Errorf("url was not updated with test replacment: %s", r.URL)
 	}
 
-	if replacementTransform != nil {
-		t.Error("the ResponseTransform returned non-nil, which is unexpected")
+	if replacementTransform != transform {
+		t.Error("the ResponseTransform returned something other than the original RequestTransform, which is unexpected")
 	}
 }
 
@@ -83,8 +83,9 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 	for _, transform := range transforms {
 		responseTransform := transform.T(request)
 		replacementTransform := responseTransform.T(&model.Response{})
-		if replacementTransform != nil {
-			t.Error("the ResponseTransform returned non-nil, which is unexpected")
+		println(replacementTransform, &replacementTransform, &transform)
+		if replacementTransform != &transform {
+			t.Error("the ResponseTransform returned something other than the original RequestTransform, which is unexpected")
 		}
 	}
 
@@ -140,8 +141,8 @@ func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
 	request := util.MakeRequest(t)
 	response := util.MakeResponse(t)
 
-	// TODO: disallow creating patterns that don't have exactly one capture group
-	requestTransform := &ResponseBodyToRequestHeaderTransform{
+	// TODO: disallow creating patterns that don't have zero or one capture groups
+	requestTransform := ResponseBodyToRequestHeaderTransform{
 		Pattern:    "token-(?P<auth>[\\w-]+-\\d{5})",
 		HeaderName: "Authorization-ID",
 	}
@@ -150,8 +151,9 @@ func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
 	responseTransform := requestTransform.T(request)
 	replacementTransform := responseTransform.T(response)
 
-	if replacementTransform != nil {
-		t.Error("The replacementTransform wasn't nil which means the transform thinks it found a match and produced a HeaderInjectionTransform")
+	if replacementTransform != requestTransform {
+		// the transform thinks it found a match and produced a HeaderInjectionTransform
+		t.Errorf("The replacementTransform wasn't the same as the original: %#v, %#v", replacementTransform, requestTransform)
 	}
 
 	response.ContentBody = stringPtr(`{
@@ -176,8 +178,8 @@ func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
 		t.Errorf("expected replacementTransform to be a HeaderInjectionTransform, was: %#v", reflect.TypeOf(replacementTransform))
 	}
 
-	if replacementTransform == nil {
-		t.Error("The replacementTransform should have been a HeaderInjectionTransform")
+	if replacementTransform == requestTransform {
+		t.Error("The replacementTransform should have been a new transform, not the original")
 	}
 
 	if replacement.Key != "Authorization-ID" {

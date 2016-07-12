@@ -38,5 +38,6 @@ func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
 		}
 	}
 
-	return noop
+	return passthrough{requestTransform: t}
+
 }

@@ -2,10 +2,11 @@ package runner
 
 import (
 	"errors"
-	"fmt"
-	"github.com/JackDanger/traffic/model"
 	"sync"
 	"time"
+
+	"github.com/JackDanger/traffic/model"
+	"github.com/JackDanger/traffic/transforms"
 )
 
 // Operation is used to send messages about stopping and starting to the Runner
@@ -21,14 +22,27 @@ const (
 	Continue
 )
 
+// Executor performs the actual HTTP actions (mocked in tests)
+type Executor interface {
+	Get(model.Request) (model.Response, error)
+	Post(model.Request) (model.Response, error)
+	Put(model.Request) (model.Response, error)
+	Delete(model.Request) (model.Response, error)
+	Head(model.Request) (model.Response, error)
+	Patch(model.Request) (model.Response, error)
+}
+
 // Runner encapsulates a single goroutine reading and replaying a HAR
 type Runner struct {
-	m                sync.Mutex
-	Har              *model.Har
-	Running          bool
-	StartTime        time.Time
-	operationChannel chan Operation
-	requestChannel   chan *model.Entry
+	m                  sync.Mutex
+	Har                *model.Har
+	Running            bool
+	StartTime          time.Time
+	operationChannel   chan Operation
+	requestChannel     chan *model.Entry
+	requestTransforms  []transforms.RequestTransform
+	responseTransforms []transforms.ResponseTransform
+	Executor           Executor
 }
 
 // This is the list (implemented as a map so we can use instance pointers) of
@@ -108,7 +122,62 @@ func (r *Runner) play(entry *model.Entry) {
 }
 
 // Play performs the request described in the Entry
-func (r *Runner) Play(entry *model.Entry) {
-	fmt.Printf("performing request for %v\n", entry.Request)
-	// TODO: do some http stuff
+func (r *Runner) Play(entry *model.Entry) error {
+	transformedRequest := r.transformRequest(entry.Request)
+
+	var err error
+	var response model.Response
+
+	switch entry.Request.Method {
+	case "GET":
+		response, err = r.Executor.Get(*transformedRequest)
+	case "POST":
+		response, err = r.Executor.Post(*transformedRequest)
+	case "PUT":
+		response, err = r.Executor.Put(*transformedRequest)
+	case "DELETE":
+		response, err = r.Executor.Delete(*transformedRequest)
+	case "HEAD":
+		response, err = r.Executor.Head(*transformedRequest)
+	case "PATCH":
+		response, err = r.Executor.Patch(*transformedRequest)
+	}
+
+	r.updateTransformsFromResponse(&response)
+
+	if &response == nil {
+		return errors.New("No HTTP verb matched")
+	}
+	return err
+}
+
+// transformRequest modifies the request object and sets up a list of
+// transforms to execute against the upcoming response.
+func (r *Runner) transformRequest(request *model.Request) *model.Request {
+	var _responseTransforms []transforms.ResponseTransform
+	for i, transform := range r.requestTransforms {
+		responseTransform := transform.T(request)
+		if responseTransform == nil {
+			panic("a transform should never ever return anything but another transform")
+		}
+		_responseTransforms[i] = responseTransform
+	}
+	// We replace the response transforms every single request
+	r.responseTransforms = _responseTransforms
+	return request
+}
+
+// updateTransformsFromResponse executes transforms which may read response
+// object and which return a set of request transforms to be used in the next
+// request.
+func (r *Runner) updateTransformsFromResponse(response *model.Response) {
+	var _requestTransforms []transforms.RequestTransform
+	for i, transform := range r.responseTransforms {
+		requestTransform := transform.T(response)
+		if requestTransform == nil {
+			panic("a transform should never ever return anything but another transform")
+		}
+		_requestTransforms[i] = requestTransform
+	}
+	r.requestTransforms = _requestTransforms
 }

@@ -10,9 +10,28 @@ import (
 // in all subsequent request headers. Once the pattern is found this Transform
 // replaces itself with a HeaderInjectionTransform that inserts a specific
 // header into all subsequent requests.
+//
+// Example:
+//
+//   Given a response that contains the string:
+//     {"auth-token": "ABC123"};
+//
+//   And a transform defined as:
+//     ResponseBodyToRequestHeaderTransform{
+//       Pattern:    `"auth-token": "(\w+)"`,
+//       HeaderName: "X-Authorization",
+//       Before:     "token-{",
+//       After:       "}",
+//     }
+//
+//   Future requests will be made with the header:
+//     "X-Authorization: token-{ABC123}"
+//
 type ResponseBodyToRequestHeaderTransform struct {
 	Pattern    string // interpreted as a regular expression
 	HeaderName string // which header to put the matched string into
+	Before     string // What to put into the header key before the match
+	After      string // What to put into the header key after the match
 }
 
 // T is because I don't know how to inherit from a func
@@ -25,6 +44,7 @@ func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransf
 	// again until an appropriate match _is_ found.
 	matchString := func(r *model.Response) RequestTransform {
 		if r.ContentBody == nil {
+			println("no ocntent")
 			return t
 		}
 
@@ -48,6 +68,7 @@ func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransf
 			return t
 		}
 
+		found = t.Before + found + t.After
 		return HeaderInjectionTransform{
 			Key:   t.HeaderName,
 			Value: found,

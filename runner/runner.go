@@ -60,7 +60,7 @@ var runners = &runnerList{
 
 // Run accepts a full HAR and begins to replay the contents at the
 // originally-recorded timing intervals.
-func Run(har *model.Har, executor Executor) *Runner {
+func Run(har *model.Har, executor Executor, transforms []transforms.RequestTransform) *Runner {
 	runner := &Runner{
 		operationChannel:       make(chan Operation, 1),
 		StartTime:              time.Now(),
@@ -69,6 +69,7 @@ func Run(har *model.Har, executor Executor) *Runner {
 		doneChannel:            make(chan bool),
 		currentEntryNumChannel: make(chan int, 1),
 		Executor:               executor,
+		requestTransforms:      transforms,
 	}
 
 	runner.begin()
@@ -174,7 +175,8 @@ func (r *Runner) Play(entry *model.Entry) error {
 // transformRequest modifies the request object and sets up a list of
 // transforms to execute against the upcoming response.
 func (r *Runner) transformRequest(request *model.Request) *model.Request {
-	var _responseTransforms []transforms.ResponseTransform
+	var _responseTransforms = make([]transforms.ResponseTransform, len(r.requestTransforms))
+	println(len(_responseTransforms))
 	for i, transform := range r.requestTransforms {
 		responseTransform := transform.T(request)
 		if responseTransform == nil {
@@ -191,7 +193,7 @@ func (r *Runner) transformRequest(request *model.Request) *model.Request {
 // object and which return a set of request transforms to be used in the next
 // request.
 func (r *Runner) updateTransformsFromResponse(response *model.Response) {
-	var _requestTransforms []transforms.RequestTransform
+	var _requestTransforms = make([]transforms.RequestTransform, len(r.responseTransforms))
 	for i, transform := range r.responseTransforms {
 		requestTransform := transform.T(response)
 		if requestTransform == nil {

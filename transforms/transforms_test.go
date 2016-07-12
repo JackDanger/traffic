@@ -39,22 +39,19 @@ func TestConstantTransformReplacesInRequestURL(t *testing.T) {
 	}
 }
 
-func stringPtr(ss string) *string {
-	return &ss
-}
 func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T) {
 	request := util.MakeRequest(t)
 	request.Headers = append(request.Headers, model.SingleItemMap{
-		Key:   stringPtr("PreviousKey"),
-		Value: stringPtr("PreviousValue"),
+		Key:   util.StringPtr("PreviousKey"),
+		Value: util.StringPtr("PreviousValue"),
 	})
 	request.Cookies = append(request.Cookies, model.SingleItemMap{
-		Key:   stringPtr("best kind of cookie"),
-		Value: stringPtr("Chocolate Chip"),
+		Key:   util.StringPtr("best kind of cookie"),
+		Value: util.StringPtr("Chocolate Chip"),
 	})
 	request.QueryString = append(request.QueryString, model.SingleItemMap{
-		Key:   stringPtr("timezone"),
-		Value: stringPtr("_TIMEZONE_"),
+		Key:   util.StringPtr("timezone"),
+		Value: util.StringPtr("_TIMEZONE_"),
 	})
 
 	transforms := []ConstantTransform{
@@ -83,31 +80,30 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 	for _, transform := range transforms {
 		responseTransform := transform.T(request)
 		replacementTransform := responseTransform.T(&model.Response{})
-		println(replacementTransform, &replacementTransform, &transform)
 		if replacementTransform != &transform {
 			t.Error("the ResponseTransform returned something other than the original RequestTransform, which is unexpected")
 		}
 	}
 
-	if !any(request.Headers, func(key, value *string) bool {
+	if !util.Any(request.Headers, func(key, value *string) bool {
 		return strings.Contains(*key, "usedtobePreviousKey")
 	}) {
 		t.Errorf("header key is unchanged: %v", request.Headers)
 	}
 
-	if !any(request.Headers, func(key, value *string) bool {
+	if !util.Any(request.Headers, func(key, value *string) bool {
 		return strings.Contains(*value, "nope.gif")
 	}) {
 		t.Errorf("header value is unchanged: %v", request.Headers)
 	}
 
-	if !any(request.Cookies, func(key, value *string) bool {
+	if !util.Any(request.Cookies, func(key, value *string) bool {
 		return strings.Contains(*value, "Peanut Butter")
 	}) {
 		t.Errorf("cookie is unchanged: %v", request.Cookies)
 	}
 
-	if !any(request.QueryString, func(key, value *string) bool {
+	if !util.Any(request.QueryString, func(key, value *string) bool {
 		return *key == "timezone" && strings.Contains(*value, "America/Los_Angeles")
 	}) {
 		t.Errorf("querystring is unchanged: %v", request.QueryString)
@@ -117,7 +113,7 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 func TestHeaderInjectionTransform(t *testing.T) {
 	request := util.MakeRequest(t)
 
-	if any(request.Headers, func(key, value *string) bool {
+	if util.Any(request.Headers, func(key, value *string) bool {
 		return *key == "newKey" || *value == "newValue"
 	}) {
 		t.Errorf("New header already exists in request: %v", request.Headers)
@@ -130,7 +126,7 @@ func TestHeaderInjectionTransform(t *testing.T) {
 
 	transform.T(request)
 
-	if !any(request.Headers, func(key, value *string) bool {
+	if !util.Any(request.Headers, func(key, value *string) bool {
 		return *key == "newKey" && *value == "newValue"
 	}) {
 		t.Errorf("New header was not added to request: %#v", request.Headers)
@@ -156,7 +152,7 @@ func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
 		t.Errorf("The replacementTransform wasn't the same as the original: %#v, %#v", replacementTransform, requestTransform)
 	}
 
-	response.ContentBody = stringPtr(`{
+	response.ContentBody = util.StringPtr(`{
 		"user": {
 			"name": "Sarah",
 			"role": "CTO"
@@ -190,16 +186,58 @@ func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
 	}
 
 }
+func TestResponseWithComplexBodyToRequestHeaderTransform(t *testing.T) {
+	request := util.MakeRequest(t)
+	response := util.MakeResponse(t)
 
-// test helpers
-
-type pairwiseFunc func(key, val *string) bool
-
-func any(pairs []model.SingleItemMap, f pairwiseFunc) bool {
-	for _, pair := range pairs {
-		if f(pair.Key, pair.Value) {
-			return true
-		}
+	// TODO: disallow creating patterns that don't have zero or one capture groups
+	requestTransform := ResponseBodyToRequestHeaderTransform{
+		Pattern:    "token-(?P<auth>[\\w-]+-\\d{5})",
+		HeaderName: "Authorization-ID",
+		Before:     "user(OWNER-",
+		After:      ")",
 	}
-	return false
+
+	// When the response body does not match
+	responseTransform := requestTransform.T(request)
+	replacementTransform := responseTransform.T(response)
+
+	if replacementTransform != requestTransform {
+		// the transform thinks it found a match and produced a HeaderInjectionTransform
+		t.Errorf("The replacementTransform wasn't the same as the original: %#v, %#v", replacementTransform, requestTransform)
+	}
+
+	response.ContentBody = util.StringPtr(`{
+		"user": {
+			"name": "Sarah",
+			"role": "CTO"
+		},
+		"session": {
+			"token": "token-ABC123-00123"
+		}
+	}`)
+
+	// When the response body matches
+	responseTransform = requestTransform.T(request)
+	replacementTransform = responseTransform.T(response)
+	if replacementTransform == nil {
+		t.Error("Expected the response body to match and to return a HeaderInjectionTransform replacement")
+	}
+
+	replacement, ok := replacementTransform.(HeaderInjectionTransform)
+	if !ok {
+		t.Errorf("expected replacementTransform to be a HeaderInjectionTransform, was: %#v", reflect.TypeOf(replacementTransform))
+	}
+
+	if replacementTransform == requestTransform {
+		t.Error("The replacementTransform should have been a new transform, not the original")
+	}
+
+	if replacement.Key != "Authorization-ID" {
+		t.Errorf("Expected HeaderName to be Authorization-ID, got: %s", replacement.Key)
+	}
+	if replacement.Value != "user(OWNER-ABC123-00123)" {
+		t.Errorf("Expected HeaderName to be user(OWNER-ABC123-00123), got: %s", replacement.Value)
+	}
+
 }

@@ -42,3 +42,20 @@ func MakeRequest(t *testing.T) *model.Request {
 func MakeResponse(t *testing.T) *model.Response {
 	return MakeEntry(t).Response
 }
+
+// StringPtr is a simply way to get a pointer to a string literal
+func StringPtr(ss string) *string {
+	return &ss
+}
+
+type pairwiseFunc func(key, val *string) bool
+
+// Any retunrs true if any of the pairs provided match the function
+func Any(pairs []model.SingleItemMap, f pairwiseFunc) bool {
+	for _, pair := range pairs {
+		if f(pair.Key, pair.Value) {
+			return true
+		}
+	}
+	return false
+}

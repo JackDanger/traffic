@@ -7,7 +7,7 @@ import (
 	"github.com/JackDanger/traffic/model"
 )
 
-// ResponseHeaderToRequestHeaderTransform executes on every Request/Response
+// HeaderToHeaderTransform executes on every Request/Response
 // loooking for a string in one of the response headers that should be
 // extracted and used in all subsequent request headers. Once the pattern is
 // found this Transform replaces itself with a HeaderInjectionTransform that
@@ -22,7 +22,7 @@ import (
 //     }
 //
 //   And a transform defined as:
-//     ResponseHeaderToRequestHeaderTransform{
+//     HeaderToHeaderTransform{
 //       ResponseKey: "new-session",
 //       Pattern:     "Session (.+)",
 //       RequestKey:  "X-AUTHORIZATION",
@@ -35,7 +35,7 @@ import (
 //       "X-AUTHORIZATION: "api:(ABC123)",
 //     }
 //
-type ResponseHeaderToRequestHeaderTransform struct {
+type HeaderToHeaderTransform struct {
 	ResponseKey string // which header to read the value out of. If blank, all headers will be checked for a mataching pattern.
 	Pattern     string // interpreted as a regular expression
 	RequestKey  string // which header to put the matched string into
@@ -44,7 +44,7 @@ type ResponseHeaderToRequestHeaderTransform struct {
 }
 
 // T is because I don't know how to inherit from a func
-func (t ResponseHeaderToRequestHeaderTransform) T(r *model.Request) ResponseTransform {
+func (t HeaderToHeaderTransform) T(r *model.Request) ResponseTransform {
 	// Find the string as a regular expression in the body somewhere and prepare
 	// a HeaderInjectionTransform with it.
 	// If no matches are found we `return t` so this same code is run again and
@@ -66,7 +66,7 @@ func (t ResponseHeaderToRequestHeaderTransform) T(r *model.Request) ResponseTran
 	}
 }
 
-func (t ResponseHeaderToRequestHeaderTransform) maybeRelace(header *model.SingleItemMap) *HeaderInjectionTransform {
+func (t HeaderToHeaderTransform) maybeRelace(header *model.SingleItemMap) *HeaderInjectionTransform {
 	regex := regexp.MustCompile(t.Pattern)
 
 	var found string

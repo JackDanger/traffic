@@ -133,12 +133,12 @@ func TestHeaderInjectionTransform(t *testing.T) {
 	}
 }
 
-func TestResponseBodyToRequestHeaderTransform(t *testing.T) {
+func TestBodyToHeaderTransform(t *testing.T) {
 	request := util.MakeRequest(t)
 	response := util.MakeResponse(t)
 
 	// TODO: disallow creating patterns that don't have zero or one capture groups
-	requestTransform := ResponseBodyToRequestHeaderTransform{
+	requestTransform := BodyToHeaderTransform{
 		Pattern:    "token-(?P<auth>[\\w-]+-\\d{5})",
 		HeaderName: "Authorization-ID",
 	}
@@ -191,7 +191,7 @@ func TestResponseWithComplexBodyToRequestHeaderTransform(t *testing.T) {
 	response := util.MakeResponse(t)
 
 	// TODO: disallow creating patterns that don't have zero or one capture groups
-	requestTransform := ResponseBodyToRequestHeaderTransform{
+	requestTransform := BodyToHeaderTransform{
 		Pattern:    "token-(?P<auth>[\\w-]+-\\d{5})",
 		HeaderName: "Authorization-ID",
 		Before:     "user(OWNER-",
@@ -246,7 +246,7 @@ func TestHeaderPatternToHeaderTransform(t *testing.T) {
 	response := util.MakeResponse(t)
 
 	// TODO: disallow creating patterns that don't have zero or one capture groups
-	requestTransforms := []ResponseHeaderToRequestHeaderTransform{
+	requestTransforms := []HeaderToHeaderTransform{
 		{
 			ResponseKey: "Role",
 			Pattern:     "I'm in the (.+) role",

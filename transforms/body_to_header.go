@@ -5,7 +5,7 @@ import (
 	"regexp"
 )
 
-// ResponseBodyToRequestHeaderTransform executes on every Request/Response
+// BodyToHeaderTransform executes on every Request/Response
 // loooking for a string in the response body that should be extracted and used
 // in all subsequent request headers. Once the pattern is found this Transform
 // replaces itself with a HeaderInjectionTransform that inserts a specific
@@ -17,7 +17,7 @@ import (
 //     {"auth-token": "ABC123"};
 //
 //   And a transform defined as:
-//     ResponseBodyToRequestHeaderTransform{
+//     BodyToHeaderTransform{
 //       Pattern:    `"auth-token": "(\w+)"`,
 //       HeaderName: "X-Authorization",
 //       Before:     "token-{",
@@ -27,7 +27,7 @@ import (
 //   Future requests will be made with the header:
 //     "X-Authorization: token-{ABC123}"
 //
-type ResponseBodyToRequestHeaderTransform struct {
+type BodyToHeaderTransform struct {
 	Pattern    string // interpreted as a regular expression
 	HeaderName string // which header to put the matched string into
 	Before     string // What to put into the header value before the match
@@ -35,7 +35,7 @@ type ResponseBodyToRequestHeaderTransform struct {
 }
 
 // T is because I don't know how to inherit from a func
-func (t ResponseBodyToRequestHeaderTransform) T(r *model.Request) ResponseTransform {
+func (t BodyToHeaderTransform) T(r *model.Request) ResponseTransform {
 	regex := regexp.MustCompile(t.Pattern)
 
 	// Find the string as a regular expression in the body somewhere and prepare

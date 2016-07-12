@@ -65,7 +65,7 @@ func TestRunWithComplexTranforms(t *testing.T) {
 		Search:  "nehakarajgikar", // found in entry[3]
 		Replace: "SugarInMyDrinks",
 	})
-	ts = append(ts, &transforms.ResponseBodyToRequestHeaderTransform{
+	ts = append(ts, &transforms.BodyToHeaderTransform{
 		Pattern:    `"session": (\d+)`,
 		HeaderName: "SessionID",
 		Before:     "prefix-",
@@ -75,7 +75,7 @@ func TestRunWithComplexTranforms(t *testing.T) {
 		"session": 42342323,
 		"other": "stuff"
 	}`)
-	//ts = append(ts, &transforms.ResponseHeaderToRequestHeaderTransform{
+	//ts = append(ts, &transforms.HeaderToHeaderTransform{
 	//	Pattern:    "github.v(\\d+)",
 	//	HeaderName: "Github-VERSION",
 	//	Before:     "omgifoundit-",

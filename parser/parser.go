@@ -2,8 +2,9 @@ package parser
 
 import (
 	"encoding/json"
-	"github.com/JackDanger/traffic/model"
 	"io/ioutil"
+
+	"github.com/JackDanger/traffic/model"
 )
 
 // The HAR file contains a top-level key called "log" which we'll pretend isn't

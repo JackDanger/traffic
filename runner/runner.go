@@ -22,16 +22,6 @@ const (
 	Continue
 )
 
-// Executor performs the actual HTTP actions (mocked in tests)
-type Executor interface {
-	Get(model.Request) (model.Response, error)
-	Post(model.Request) (model.Response, error)
-	Put(model.Request) (model.Response, error)
-	Delete(model.Request) (model.Response, error)
-	Head(model.Request) (model.Response, error)
-	Patch(model.Request) (model.Response, error)
-}
-
 // Runner encapsulates a single goroutine reading and replaying a HAR
 type Runner struct {
 	m                      sync.Mutex
@@ -147,7 +137,7 @@ func (r *Runner) Play(entry *model.Entry) error {
 	transformedRequest := r.transformRequest(*entry.Request)
 
 	var err error
-	var response model.Response
+	var response *model.Response
 
 	switch entry.Request.Method {
 	case "GET":
@@ -164,9 +154,9 @@ func (r *Runner) Play(entry *model.Entry) error {
 		response, err = r.Executor.Patch(transformedRequest)
 	}
 
-	r.updateTransformsFromResponse(&response)
+	r.updateTransformsFromResponse(response)
 
-	if &response == nil {
+	if response == nil {
 		return errors.New("No HTTP verb matched")
 	}
 	return err
@@ -180,12 +170,12 @@ func (r *Runner) transformRequest(request model.Request) model.Request {
 	// because each kind produces the other.
 	r.responseTransforms = make([]transforms.ResponseTransform, len(r.requestTransforms))
 
-	for _, requestTransform := range r.requestTransforms {
+	for i, requestTransform := range r.requestTransforms {
 		responseTransform := requestTransform.T(&request)
 		if responseTransform == nil {
 			panic("a transform should never ever return anything but another transform")
 		}
-		r.responseTransforms = append(r.responseTransforms, responseTransform)
+		r.responseTransforms[i] = responseTransform
 	}
 
 	// The RequestTransform instances may have modified the request
@@ -200,11 +190,11 @@ func (r *Runner) updateTransformsFromResponse(response *model.Response) {
 
 	// There are always exactly as many requestTransforms as responseTransforms
 	r.requestTransforms = make([]transforms.RequestTransform, len(r.responseTransforms))
-	for _, transform := range r.responseTransforms {
+	for i, transform := range r.responseTransforms {
 		requestTransform := transform.T(response)
 		if requestTransform == nil {
 			panic("a transform should never ever return anything but another transform")
 		}
-		r.requestTransforms = append(r.requestTransforms, requestTransform)
+		r.requestTransforms[i] = requestTransform
 	}
 }

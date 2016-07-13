@@ -23,9 +23,14 @@ func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
 		r.URL = strings.Replace(r.URL, t.Search, t.Replace, -1)
 	}
 
+	// Extract the key/value from the cookies.
+	var cookieMaps []model.SingleItemMap
+	for _, cookie := range r.Cookies {
+		cookieMaps = append(cookieMaps, cookie.SingleItemMap)
+	}
 	for _, pairs := range [][]model.SingleItemMap{
 		r.Headers,
-		r.Cookies,
+		cookieMaps,
 		r.QueryString,
 	} {
 		for _, pair := range pairs {

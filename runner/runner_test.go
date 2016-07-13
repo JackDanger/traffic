@@ -154,7 +154,7 @@ func testExecutor(t *testing.T) mockExecutor {
 	}
 }
 
-// Given a request copy it to a local list of processed reqeusts.
+// Given a request, copy it to a local list of processed reqeusts.
 func (e mockExecutor) clone(verb string, original model.Request) {
 	// Roundtrip the request through JSON to make a deep copy
 	r := model.Request{}
@@ -175,29 +175,29 @@ func (e mockExecutor) clone(verb string, original model.Request) {
 	})
 }
 
-func (e mockExecutor) Get(r model.Request) (model.Response, error) {
+func (e mockExecutor) Get(r model.Request) (*model.Response, error) {
 	e.clone("GET", r)
-	return e.Response, nil
+	return &e.Response, nil
 }
-func (e mockExecutor) Post(r model.Request) (model.Response, error) {
+func (e mockExecutor) Post(r model.Request) (*model.Response, error) {
 	e.clone("POST", r)
-	return e.Response, nil
+	return &e.Response, nil
 }
-func (e mockExecutor) Put(r model.Request) (model.Response, error) {
+func (e mockExecutor) Put(r model.Request) (*model.Response, error) {
 	e.clone("PUT", r)
-	return e.Response, nil
+	return &e.Response, nil
 }
-func (e mockExecutor) Delete(r model.Request) (model.Response, error) {
+func (e mockExecutor) Delete(r model.Request) (*model.Response, error) {
 	e.clone("DELETE", r)
-	return e.Response, nil
+	return &e.Response, nil
 }
-func (e mockExecutor) Head(r model.Request) (model.Response, error) {
+func (e mockExecutor) Head(r model.Request) (*model.Response, error) {
 	e.clone("HEAD", r)
-	return e.Response, nil
+	return &e.Response, nil
 }
-func (e mockExecutor) Patch(r model.Request) (model.Response, error) {
+func (e mockExecutor) Patch(r model.Request) (*model.Response, error) {
 	e.clone("PATCH", r)
-	return e.Response, nil
+	return &e.Response, nil
 }
 
 var _ Executor = mockExecutor{}

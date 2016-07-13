@@ -45,9 +45,11 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 		Key:   util.StringPtr("PreviousKey"),
 		Value: util.StringPtr("PreviousValue"),
 	})
-	request.Cookies = append(request.Cookies, model.SingleItemMap{
-		Key:   util.StringPtr("best kind of cookie"),
-		Value: util.StringPtr("Chocolate Chip"),
+	request.Cookies = append(request.Cookies, model.Cookie{
+		SingleItemMap: model.SingleItemMap{
+			Key:   util.StringPtr("best kind of cookie"),
+			Value: util.StringPtr("Chocolate Chip"),
+		},
 	})
 	request.QueryString = append(request.QueryString, model.SingleItemMap{
 		Key:   util.StringPtr("timezone"),
@@ -97,7 +99,12 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 		t.Errorf("header value is unchanged: %v", request.Headers)
 	}
 
-	if !util.Any(request.Cookies, func(key, value *string) bool {
+	// Extract the key/value from the cookies.
+	var cookieMaps []model.SingleItemMap
+	for _, cookie := range request.Cookies {
+		cookieMaps = append(cookieMaps, cookie.SingleItemMap)
+	}
+	if !util.Any(cookieMaps, func(key, value *string) bool {
 		return strings.Contains(*value, "Peanut Butter")
 	}) {
 		t.Errorf("cookie is unchanged: %v", request.Cookies)

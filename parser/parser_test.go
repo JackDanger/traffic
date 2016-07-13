@@ -51,7 +51,8 @@ func TestParse(t *testing.T) {
 	}
 
 	if normalizedJSON(escaped(jsonSource), t) != normalizedJSON(roundtrip, t) {
-		ioutil.WriteFile(pathToOut, roundtrip, 0600)
-		t.Errorf("the json source wasn't the same.")
+		ioutil.WriteFile(pathToOut, escaped(roundtrip), 0600)
+		ioutil.WriteFile(pathToOut+".escapedoriginal", escaped(jsonSource), 0600)
+		t.Errorf("the json source wasn't the same.\n compare with: \ndiff -w fixtures/browse-two-github-users.har.roundtrip*")
 	}
 }

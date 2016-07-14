@@ -8,21 +8,6 @@ import (
 	"testing"
 )
 
-func normalizedJSON(input []byte, t *testing.T) string {
-	output := bytes.Buffer{}
-	err := json.Compact(&output, input)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return output.String()
-}
-
-func escaped(input []byte) []byte {
-	buf := &bytes.Buffer{}
-	json.HTMLEscape(buf, input)
-	return buf.Bytes()
-}
-
 func TestParse(t *testing.T) {
 	fixture := "../fixtures/browse-two-github-users.har"
 	out := "../fixtures/browse-two-github-users.har.roundtrip"
@@ -39,9 +24,13 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	instance, err := HarFrom(pathToFixture)
+	instance, err := HarFrom(pathToFixture, "browse-two-github-users")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if instance.Name != "browse-two-github-users" {
+		t.Errorf("Unexpected HAR name: %s", instance.Name)
 	}
 
 	wrapper := &harWrapper{Har: *instance}
@@ -55,4 +44,21 @@ func TestParse(t *testing.T) {
 		ioutil.WriteFile(pathToOut+".escapedoriginal", escaped(jsonSource), 0600)
 		t.Errorf("the json source wasn't the same.\n compare with: \ndiff -w fixtures/browse-two-github-users.har.roundtrip*")
 	}
+}
+
+// test helpers
+
+func normalizedJSON(input []byte, t *testing.T) string {
+	output := bytes.Buffer{}
+	err := json.Compact(&output, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return output.String()
+}
+
+func escaped(input []byte) []byte {
+	buf := &bytes.Buffer{}
+	json.HTMLEscape(buf, input)
+	return buf.Bytes()
 }

@@ -35,7 +35,6 @@ type HTTPExecutor struct {
 // Get performs an HTTP POST
 func (e *HTTPExecutor) Get(r model.Request) (*model.Response, error) {
 	req, err := http.NewRequest("GET", r.URL, nil)
-	fmt.Println(req.URL.Host)
 	if err != nil {
 		e.handleError(err)
 		return &model.Response{}, err
@@ -80,10 +79,10 @@ func (e *HTTPExecutor) Patch(r model.Request) (*model.Response, error) {
 }
 
 // NewHTTPExecutor returns an object that can perform live HTTP requests
-func NewHTTPExecutor(logDevice io.Writer) Executor {
+func NewHTTPExecutor(name string, logDevice io.Writer) Executor {
 	return &HTTPExecutor{
 		client: http.Client{},
-		logger: NewLogger(logDevice),
+		logger: NewLogger(name, logDevice),
 	}
 }
 
@@ -123,7 +122,7 @@ func (e *HTTPExecutor) toModelResponse(h *http.Response, err error) *model.Respo
 }
 
 func (e *HTTPExecutor) handleError(err error) {
-	e.log("error: ", fmt.Sprintf("%#v", err))
+	e.log("Executor error: ", err.Error())
 }
 
 // Reads the headers from the model.Request and applies them to the
@@ -183,15 +182,19 @@ func (e *HTTPExecutor) readBody(req *http.Response) []byte {
 
 // Logger encapsulates printing to the screen or a file or a variable under test.
 type Logger struct {
+	name   string
 	device io.Writer
 }
 
 // Println sends to the logging device what fmt.Println sends to os.Stdout
 func (l *Logger) Println(s ...interface{}) {
-	l.device.Write([]byte(fmt.Sprintln(s...)))
+	line := []byte(l.name)
+	line = append(line, []byte(": ")...)
+	line = append(line, []byte(fmt.Sprintln(s...))...)
+	l.device.Write(line)
 }
 
 // NewLogger produces a logger backed by the provided device
-func NewLogger(device io.Writer) Logger {
-	return Logger{device: device}
+func NewLogger(name string, device io.Writer) Logger {
+	return Logger{device: device, name: name}
 }

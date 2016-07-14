@@ -6,6 +6,7 @@ import (
 
 // Har represents the top-level, single  `log` key of the .har file
 type Har struct {
+	Name    string   // Internal use only, not part of the HAR file
 	Version string   `json:"version"`
 	Creator creator  `json:"creator"`
 	Pages   []string `json:"pages"` // Not impleneted

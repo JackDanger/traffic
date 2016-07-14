@@ -52,7 +52,7 @@ var started = startServer()
 
 func TestGet(t *testing.T) {
 	println(started)
-	executor := NewHTTPExecutor(os.Stdout)
+	executor := NewHTTPExecutor("tester", os.Stdout)
 
 	// Set some headers that our server will sent back to us - we'll check that
 	// they return in the right format
@@ -85,13 +85,13 @@ func TestGet(t *testing.T) {
 		t.Errorf("Couldn't find the first second header in\n %s", printSingleItemMaps(response.Headers))
 	}
 	if *response.ContentBody != "This should be the body" {
-		t.Errorf("Unexpected body content: %s", response.ContentBody)
+		t.Errorf("Unexpected body content: %s", *response.ContentBody)
 	}
 }
 
 func TestGetWithElaborateHeadersAndQueryString(t *testing.T) {
 	println(started)
-	executor := NewHTTPExecutor(os.Stdout).(*HTTPExecutor)
+	executor := NewHTTPExecutor("anyname", os.Stdout).(*HTTPExecutor)
 
 	request := model.Request{
 		URL: "http://localhost:9797/kate/heddleston?query=string",
@@ -137,7 +137,7 @@ func TestGetWithElaborateHeadersAndQueryString(t *testing.T) {
 
 func TestPost(t *testing.T) {
 	println(started)
-	executor := NewHTTPExecutor(os.Stdout)
+	executor := NewHTTPExecutor("tester", os.Stdout)
 
 	// Set some headers that our server will sent back to us - we'll check that
 	// they return in the right format
@@ -175,7 +175,7 @@ func TestPost(t *testing.T) {
 	}
 
 	if response.ContentBody != nil && *response.ContentBody != "This should be the body" {
-		t.Errorf("Unexpected body content: %s", response.ContentBody)
+		t.Errorf("Unexpected body content: %s", *response.ContentBody)
 	}
 }
 

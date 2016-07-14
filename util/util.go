@@ -21,7 +21,7 @@ func Fixture(t *testing.T, name ...*string) model.Har {
 	}
 
 	pathToFixture := cwd + "/" + fixture
-	har, err := parser.HarFrom(pathToFixture, "browse-two-github-users")
+	har, err := parser.HarFrom(pathToFixture)
 	if err != nil {
 		t.Fatal(err)
 	}

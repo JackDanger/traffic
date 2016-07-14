@@ -22,7 +22,7 @@ func main() {
 		return
 	}
 
-	har, err := parser.HarFrom(*file, filepath.Base(*file))
+	har, err := parser.HarFrom(*file)
 
 	if err != nil {
 		fmt.Printf("failed with %s", err)
@@ -47,7 +47,7 @@ func main() {
 	for i := 0; i <= numRunners; i++ {
 		num := string('0' + i)
 		go func() {
-			<-runner.Run(har, runner.NewHTTPExecutor(har.Name+" #"+num, os.Stdout), transforms).DoneChannel
+			<-runner.Run(har, runner.NewHTTPExecutor(filepath.Base(*file)+" #"+num, os.Stdout), transforms).DoneChannel
 			waitForRunners.Done()
 		}()
 	}

@@ -24,13 +24,9 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	instance, err := HarFrom(pathToFixture, "browse-two-github-users")
+	instance, err := HarFrom(pathToFixture)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if instance.Name != "browse-two-github-users" {
-		t.Errorf("Unexpected HAR name: %s", instance.Name)
 	}
 
 	wrapper := &harWrapper{Har: *instance}

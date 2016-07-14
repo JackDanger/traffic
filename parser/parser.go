@@ -14,7 +14,7 @@ type harWrapper struct {
 }
 
 // HarFrom parses the .har file and returns a full Har instance.
-func HarFrom(path, name string) (*model.Har, error) {
+func HarFrom(path string) (*model.Har, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,5 @@ func HarFrom(path, name string) (*model.Har, error) {
 	if err != nil {
 		return nil, err
 	}
-	wrapper.Har.Name = name
-
 	return &wrapper.Har, nil
 }

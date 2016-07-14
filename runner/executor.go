@@ -2,12 +2,14 @@ package runner
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/JackDanger/traffic/model"
+	"github.com/JackDanger/traffic/util"
 )
 
 // Executor is anything that can perform HTTP requests (it's an interface so we
@@ -100,18 +102,16 @@ func (e *HTTPExecutor) toModelResponse(h *http.Response, err error) *model.Respo
 			headers = append(headers, model.SingleItemMap{
 				// Make a copy of the string otherwise we store the address and this
 				// loop reuses the address each time through.
-				Key:   func(s string) *string { return &s }(key),
+				Key:   util.StringPtr(key),
 				Value: &value,
 			})
 		}
 	}
 
-	body, err := ioutil.ReadAll(h.Body)
-	if err != nil {
-		e.logger.Println("error reading http response body: ", err)
-	}
-
 	e.log(h.Status)
+
+	body := e.readBody(h)
+	e.log("body length: ", len(body))
 
 	return &model.Response{
 		HTTPVersion: h.Proto,
@@ -151,6 +151,35 @@ func (e *HTTPExecutor) fromModelRequest(req *http.Request, modelRequest *model.R
 		req.Header.Set("Content-Type", "text/html") // can't think of a better default
 	}
 }
+func (e *HTTPExecutor) log(s ...interface{}) {
+	e.logger.Println(s...)
+}
+
+// GetLastRequest is used in testing to assert we've properly transformed inbound values
+func (e *HTTPExecutor) GetLastRequest() *http.Request {
+	return e.lastRequest
+}
+
+// Reads the body into a byte slice, uncompresses it if necessary.
+func (e *HTTPExecutor) readBody(req *http.Response) []byte {
+	var body []byte
+	var err error
+	switch req.Header.Get("Content-Encoding") {
+	case "gzip":
+		reader, _ := gzip.NewReader(req.Body)
+		defer reader.Close()
+		body, err = ioutil.ReadAll(reader)
+		if err != nil {
+			e.log("error reading gzipped http response body: ", err)
+		}
+	default:
+		body, err = ioutil.ReadAll(req.Body)
+		if err != nil {
+			e.log("error reading uncompressed http response body: ", err)
+		}
+	}
+	return body
+}
 
 // Logger encapsulates printing to the screen or a file or a variable under test.
 type Logger struct {
@@ -160,15 +189,6 @@ type Logger struct {
 // Println sends to the logging device what fmt.Println sends to os.Stdout
 func (l *Logger) Println(s ...interface{}) {
 	l.device.Write([]byte(fmt.Sprintln(s...)))
-}
-
-func (e *HTTPExecutor) log(s ...interface{}) {
-	e.logger.Println(s...)
-}
-
-// GetLastRequest is used in testing to assert we've properly transformed inbound values
-func (e *HTTPExecutor) GetLastRequest() *http.Request {
-	return e.lastRequest
 }
 
 // NewLogger produces a logger backed by the provided device

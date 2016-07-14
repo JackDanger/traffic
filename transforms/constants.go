@@ -2,7 +2,6 @@ package transforms
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/JackDanger/traffic/model"
 )
@@ -22,9 +21,7 @@ func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
 	// We replace constants when they appear as string values anywhere in the
 	// URL, in Headers (both keys and values) and in Cookies (both keys and
 	// values)
-	if strings.Contains(r.URL, t.Search) {
-		t.replace(&r.URL)
-	}
+	t.replace(&r.URL)
 
 	// Extract the key/value from the cookies.
 	var cookieMaps []model.SingleItemMap

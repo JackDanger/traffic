@@ -66,12 +66,8 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 			Replace: "nope.gif",
 		},
 		{
-			Search:  "Chocolate Chip",
-			Replace: "Peanut Butter",
-		},
-		{
-			Search:  "Chocolate Chip",
-			Replace: "Peanut Butter",
+			Search:  "best.*",
+			Replace: "ignore this cookie",
 		},
 		{
 			Search:  "_TIMEZONE_",
@@ -105,7 +101,7 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 		cookieMaps = append(cookieMaps, cookie.SingleItemMap)
 	}
 	if !util.Any(cookieMaps, func(key, value *string) bool {
-		return strings.Contains(*value, "Peanut Butter")
+		return *key == "ignore this cookie" && *value == "Chocolate Chip"
 	}) {
 		t.Errorf("cookie is unchanged: %v", request.Cookies)
 	}

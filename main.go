@@ -30,10 +30,12 @@ func main() {
 	executor := runner.NewHTTPExecutor(os.Stdout)
 	transforms := []transforms.RequestTransform{
 		&transforms.ConstantTransform{
-			Search:  "en-us",
-			Replace: "es-us",
+			Search:  "https?://.*/",
+			Replace: "http://localhost:8000/",
 		},
 	}
+	// To test against localhost:
+	// $ python -m SimpleHTTPServer
 
 	runner := runner.Run(har, executor, transforms)
 	fmt.Println("started runner")

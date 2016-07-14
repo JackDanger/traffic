@@ -29,7 +29,7 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wrapper := &harWrapper{Har: *instance}
+	wrapper := &HarWrapper{Har: *instance}
 	roundtrip, err := json.MarshalIndent(wrapper, "", "  ")
 	if err != nil {
 		t.Fatal(err)

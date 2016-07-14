@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/JackDanger/traffic/model"
-	util "github.com/JackDanger/traffic/test"
+	"github.com/JackDanger/traffic/util"
 )
 
 type handler struct{}
@@ -177,7 +177,6 @@ func TestPost(t *testing.T) {
 	if response.ContentBody != nil && *response.ContentBody != "This should be the body" {
 		t.Errorf("Unexpected body content: %s", response.ContentBody)
 	}
-
 }
 
 // Test Helperrs

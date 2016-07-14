@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/JackDanger/traffic/model"
-	util "github.com/JackDanger/traffic/test"
+	"github.com/JackDanger/traffic/util"
 	"github.com/JackDanger/traffic/transforms"
 )
 

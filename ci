@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -euo pipefail
+
+packages=$(ls -1 **/*_test.go | xargs -n 1 dirname | sort -u | xargs -n 1 -I {} echo "./{}")
+set -x
+go test $packages

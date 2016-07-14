@@ -39,7 +39,7 @@ func TestRunWholeTar(t *testing.T) {
 	instance := Run(&har, executor, nil)
 
 	select {
-	case <-instance.doneChannel:
+	case <-instance.DoneChannel:
 		// wait for instance to send something on it's completion channel
 	}
 	if len(*executor.ProcessedRequests) < entryCount {
@@ -85,7 +85,7 @@ func TestRunWithComplexTranforms(t *testing.T) {
 	instance := Run(&har, executor, ts)
 
 	select {
-	case <-instance.doneChannel:
+	case <-instance.DoneChannel:
 		// wait for instance to send something on it's completion channel
 	}
 	if len(*executor.ProcessedRequests) < entryCount {

@@ -30,7 +30,7 @@ type Runner struct {
 	StartTime              time.Time
 	operationChannel       chan Operation
 	currentEntryNumChannel chan int
-	doneChannel            chan bool
+	DoneChannel            chan bool
 	requestTransforms      []transforms.RequestTransform
 	responseTransforms     []transforms.ResponseTransform
 	Executor               Executor
@@ -56,7 +56,7 @@ func Run(har *model.Har, executor Executor, transforms []transforms.RequestTrans
 		StartTime:              time.Now(),
 		Har:                    har,
 		Running:                false,
-		doneChannel:            make(chan bool),
+		DoneChannel:            make(chan bool),
 		currentEntryNumChannel: make(chan int, 1),
 		Executor:               executor,
 		requestTransforms:      transforms,
@@ -105,7 +105,7 @@ func (r *Runner) begin() error {
 					runners.m.Lock()
 					defer runners.m.Unlock()
 					defer delete(runners.items, r) // Remove this instance from the list
-					r.doneChannel <- true
+					r.DoneChannel <- true
 					return // This is where we shut the whole routine down
 				}
 			// Check if there's another request to make. If so, play it (play() spawns

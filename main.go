@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"os"
+
 	"github.com/JackDanger/traffic/parser"
 	"github.com/JackDanger/traffic/runner"
-	"os"
+	"github.com/JackDanger/traffic/transforms"
 )
 
 func main() {
@@ -25,6 +27,16 @@ func main() {
 		fmt.Fprintf(stdout, "failed with %s", err)
 	}
 
-	r := &runner.Runner{}
-	r.Play(&har.Entries[0])
+	executor := runner.NewHTTPExecutor(os.Stdout)
+	transforms := []transforms.RequestTransform{
+		&transforms.ConstantTransform{
+			Search:  "en-us",
+			Replace: "es-us",
+		},
+	}
+
+	runner := runner.Run(har, executor, transforms)
+	fmt.Println("started runner")
+	<-runner.DoneChannel
+	fmt.Println("Done. Exiting.")
 }

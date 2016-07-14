@@ -111,6 +111,8 @@ func (e *HTTPExecutor) toModelResponse(h *http.Response, err error) *model.Respo
 		e.logger.Println("error reading http response body: ", err)
 	}
 
+	e.log(h.Status)
+
 	return &model.Response{
 		HTTPVersion: h.Proto,
 		Status:      h.StatusCode,

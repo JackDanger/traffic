@@ -17,6 +17,10 @@ import (
 )
 
 func main() {
+	runOneHar()
+}
+
+func runTheWebInterface() {
 	err := persistence.Initialize()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -38,7 +42,7 @@ func runOneHar() {
 		return
 	}
 
-	har, err := parser.HarFrom(*file)
+	har, err := parser.HarFromFile(*file)
 
 	if err != nil {
 		fmt.Printf("failed with %s", err)
@@ -53,11 +57,11 @@ func runOneHar() {
 	}
 
 	startLocalhostServerOnPort("8000")
-	numRunners := 2
+	numRunners := 3
 	waitForRunners := sync.WaitGroup{}
 	waitForRunners.Add(numRunners)
 
-	for i := 0; i <= numRunners; i++ {
+	for i := 0; i < numRunners; i++ {
 		num := string('0' + i)
 		go func() {
 			name := filepath.Base(*file) + " #" + num

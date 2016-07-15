@@ -6,10 +6,10 @@ import (
 
 // Har represents the top-level, single  `log` key of the .har file
 type Har struct {
-	Version string   `json:"version"`
-	Creator creator  `json:"creator"`
-	Pages   []string `json:"pages"` // Not impleneted
-	Entries []Entry  `json:"entries"`
+	Version string  `json:"version"`
+	Creator creator `json:"creator"`
+	Pages   string  `json:"-"`
+	Entries []Entry `json:"entries"`
 }
 
 // Entry is a single request & response

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/JackDanger/traffic/model"
-	"github.com/JackDanger/traffic/util"
 	"github.com/JackDanger/traffic/transforms"
+	"github.com/JackDanger/traffic/util"
 )
 
 func TestPlay(t *testing.T) {

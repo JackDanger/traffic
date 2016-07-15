@@ -128,6 +128,8 @@ func (r *Runner) play(index int) {
 	entry := r.Har.Entries[index]
 	go func() {
 		r.Play(&entry)
+		waitMs := r.StartTime.Add(time.Millisecond*time.Duration(entry.TimeMs)).Sub(time.Now()) / time.Millisecond
+		time.Sleep(waitMs * time.Millisecond)
 		r.currentEntryNumChannel <- index + 1
 	}()
 }

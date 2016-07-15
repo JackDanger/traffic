@@ -1,10 +1,13 @@
 package util
 
 import (
+	"os"
+	"path"
+	"runtime"
+	"testing"
+
 	"github.com/JackDanger/traffic/model"
 	"github.com/JackDanger/traffic/parser"
-	"os"
-	"testing"
 )
 
 // Fixture returns a Har from the ./fixtures directory
@@ -58,4 +61,10 @@ func Any(pairs []model.SingleItemMap, f pairwiseFunc) bool {
 		}
 	}
 	return false
+}
+
+// Root points to this project's root directory
+func Root() string {
+	_, filename, _, _ := runtime.Caller(1)
+	return path.Dir(filename) + "/../"
 }

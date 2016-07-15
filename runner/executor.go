@@ -47,7 +47,13 @@ func (e *HTTPExecutor) Get(r model.Request) (*model.Response, error) {
 
 // Post performs an HTTP POST
 func (e *HTTPExecutor) Post(r model.Request) (*model.Response, error) {
-	req, err := http.NewRequest("POST", r.URL, bytes.NewBufferString(r.PostData.Text))
+	var text string
+	if r.PostData != nil {
+		text = r.PostData.Text
+	} else {
+		text = ""
+	}
+	req, err := http.NewRequest("POST", r.URL, bytes.NewBufferString(text))
 	if err != nil {
 		e.handleError(err)
 		return &model.Response{}, err

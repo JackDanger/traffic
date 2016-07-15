@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // Har represents the top-level, single  `log` key of the .har file
@@ -14,7 +15,7 @@ type Har struct {
 
 // Entry is a single request & response
 type Entry struct {
-	Start           string    `json:"startedDateTime"`
+	Start           time.Time `json:"startedDateTime"`
 	TimeMs          float64   `json:"time"`
 	Request         *Request  `json:"request"`
 	Response        *Response `json:"response"`

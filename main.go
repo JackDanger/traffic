@@ -16,12 +16,11 @@ import (
 )
 
 func main() {
-	runServer()
-}
-
-func runServer() {
 	web := server.NewServer("8000")
-	web.ListenAndServe()
+	err := web.ListenAndServeTLS("server/cert.pem", "server/key.pem")
+	if err != nil {
+		println("Error starting server: ", err.Error())
+	}
 }
 
 func runOneHar() {

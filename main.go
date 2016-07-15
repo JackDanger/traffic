@@ -10,14 +10,20 @@ import (
 	"time"
 
 	"github.com/JackDanger/traffic/parser"
+	"github.com/JackDanger/traffic/persistence"
 	"github.com/JackDanger/traffic/runner"
 	"github.com/JackDanger/traffic/server"
 	"github.com/JackDanger/traffic/transforms"
 )
 
 func main() {
+	err := persistence.Initialize()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	web := server.NewServer("8000")
-	err := web.ListenAndServeTLS("server/cert.pem", "server/key.pem")
+	err = web.ListenAndServeTLS("server/cert.pem", "server/key.pem")
 	if err != nil {
 		println("Error starting server: ", err.Error())
 	}

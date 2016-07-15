@@ -31,3 +31,10 @@ func HarFromFile(path string) (*model.Har, error) {
 	}
 	return HarFrom(string(bytes))
 }
+
+// HarToJSON does the opposite of HarFrom
+func HarToJSON(har *model.Har) string {
+	wrapper := &HarWrapper{Har: har}
+	j, _ := json.MarshalIndent(wrapper, "", "  ")
+	return string(j)
+}

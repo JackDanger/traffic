@@ -7,9 +7,12 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 
 	"github.com/JackDanger/traffic/parser"
-	"github.com/gorilla/mux"
 )
 
 // NewServer returns an instance of http.Server ready to listen on the given
@@ -74,9 +77,44 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Write(contentJSON)
 }
 
+// H .
+type H struct {
+	Name   string `json:"name",schema:"name"`
+	Source string `json:"source",schema:"source"`
+}
+
+// Form .
+type Form struct {
+	Har H `json:"form",schema:"har"`
+}
+
 // CreateHar stores a new HAR
 func CreateHar(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("sure, let's get around to persistence eventually.\n"))
+	err := r.ParseForm()
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+	decoder := schema.NewDecoder()
+	f := &Form{}
+	// r.PostForm is a map of our POST form values
+	err = decoder.Decode(f, r.PostForm)
+	if err != nil {
+		data := ""
+		for k, values := range r.PostForm {
+			for _, v := range values {
+				data += "," + k + ":" + v
+			}
+		}
+		w.Write([]byte("decoding error: " + err.Error() + "\n data: " + data))
+		return
+	}
+
+	contentJSON, _ := json.Marshal(f)
+	content := "submitted HAR source of length: " + strconv.Itoa(int(r.ContentLength))
+	content += "\n"
+	content += string(contentJSON)
+	w.Write([]byte(content))
 }
 
 // StartHar begins 1 or more runners of a specific HAR file identified by name

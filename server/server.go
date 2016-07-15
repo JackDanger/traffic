@@ -43,8 +43,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	content, err := webFile("index.html")
 
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		fail(err, w)
 		return
 	}
 	w.WriteHeader(200)
@@ -58,8 +57,7 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	har, err := parser.HarFrom(currentDir() + "/../fixtures/browse-two-github-users.har")
 
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		fail(err, w)
 		return
 	}
 
@@ -68,8 +66,7 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	}
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		fail(err, w)
 		return
 	}
 
@@ -77,41 +74,43 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Write(contentJSON)
 }
 
-// H .
-type H struct {
-	Name   string `json:"name",schema:"name"`
-	Source string `json:"source",schema:"source"`
-}
-
-// Form .
-type Form struct {
-	Har H `json:"form",schema:"har"`
-}
-
 // CreateHar stores a new HAR
 func CreateHar(w http.ResponseWriter, r *http.Request) {
+	// Extracts form values into a url.Values (map[string][]string) instance.
+	// Note that the popular nesting convention doesn't work natively in Go:
+	//   "?key[subkey]=x" -> map[string][]string{"key[subkey]": "x"}
+	// But if you use dot notation like the following then Gorilla's schema can
+	// extract nested objects:
+	//   "?key.subkey=x" -> map[string][]string{"key.subkey": "x"}
 	err := r.ParseForm()
 	if err != nil {
-		w.Write([]byte(err.Error()))
-		return
-	}
-	decoder := schema.NewDecoder()
-	f := &Form{}
-	// r.PostForm is a map of our POST form values
-	err = decoder.Decode(f, r.PostForm)
-	if err != nil {
-		data := ""
-		for k, values := range r.PostForm {
-			for _, v := range values {
-				data += "," + k + ":" + v
-			}
-		}
-		w.Write([]byte("decoding error: " + err.Error() + "\n data: " + data))
+		fail(err, w)
 		return
 	}
 
-	contentJSON, _ := json.Marshal(f)
-	content := "submitted HAR source of length: " + strconv.Itoa(int(r.ContentLength))
+	type H struct {
+		Name   string `json:"name",schema:"name"`
+		Source string `json:"source",schema:"source"`
+	}
+	type Form struct {
+		Har H `json:"form",schema:"har"`
+	}
+	form := &Form{}
+	decoder := schema.NewDecoder()
+	// r.PostForm is a map of our POST form values
+	err = decoder.Decode(form, r.PostForm)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	contentJSON, err := json.Marshal(form)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	content := "submitted web form of length: " + strconv.Itoa(int(r.ContentLength)) + " bytes"
 	content += "\n"
 	content += string(contentJSON)
 	w.Write([]byte(content))
@@ -125,8 +124,7 @@ func StartHar(w http.ResponseWriter, r *http.Request) {
 	har, err := parser.HarFrom(currentDir() + "/../fixtures/browse-two-github-users.har")
 
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		fail(err, w)
 		return
 	}
 
@@ -135,8 +133,7 @@ func StartHar(w http.ResponseWriter, r *http.Request) {
 	}
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		fail(err, w)
 		return
 	}
 
@@ -157,4 +154,9 @@ func webFile(filename string) ([]byte, error) {
 		return nil, err
 	}
 	return bytes, nil
+}
+
+func fail(err error, w http.ResponseWriter) {
+	w.WriteHeader(500)
+	w.Write([]byte(err.Error()))
 }

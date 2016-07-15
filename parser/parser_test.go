@@ -24,12 +24,12 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	instance, err := HarFrom(pathToFixture)
+	instance, err := HarFromFile(pathToFixture)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	wrapper := &HarWrapper{Har: *instance}
+	wrapper := &HarWrapper{Har: instance}
 	roundtrip, err := json.MarshalIndent(wrapper, "", "  ")
 	if err != nil {
 		t.Fatal(err)

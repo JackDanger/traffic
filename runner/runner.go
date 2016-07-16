@@ -128,8 +128,7 @@ func (r *Runner) play(index int) {
 	entry := r.Har.Entries[index]
 	go func() {
 		r.Play(&entry)
-		waitMs := r.StartTime.Add(time.Millisecond*time.Duration(entry.TimeMs)).Sub(time.Now()) / time.Millisecond
-		time.Sleep(waitMs * time.Millisecond)
+		time.Sleep(r.SleepFor(&entry))
 		r.currentEntryNumChannel <- index + 1
 	}()
 }
@@ -195,8 +194,16 @@ func (r *Runner) updateTransformsFromResponse(response *model.Response) {
 	for i, transform := range r.responseTransforms {
 		requestTransform := transform.T(response)
 		if requestTransform == nil {
-			panic("a transform should never ever return anything but another transform")
+			panic("a transform's .T() should never ever return anything but another transform")
 		}
 		r.requestTransforms[i] = requestTransform
 	}
+}
+
+// SleepFor calculates how long has passed since the runner started and,
+// considering how long after the HAR recording began this particular entry
+// happened, returns a time duration that we should sleep so the next request
+// happens at the right time.
+func (r *Runner) SleepFor(entry *model.Entry) time.Duration {
+	return r.StartTime.Add(time.Duration(entry.TimeMs) * time.Millisecond).Sub(time.Now())
 }

@@ -2,20 +2,19 @@ package model
 
 import (
 	"encoding/json"
-	"time"
 )
 
 // Har represents the top-level, single  `log` key of the .har file
 type Har struct {
 	Version string  `json:"version"`
 	Creator creator `json:"creator"`
-	Pages   string  `json:"-"`
+	Pages   []page  `json:"pages"`
 	Entries []Entry `json:"entries"`
 }
 
 // Entry is a single request & response
 type Entry struct {
-	Start           time.Time `json:"startedDateTime"`
+	Start           string    `json:"startedDateTime"`
 	TimeMs          float64   `json:"time"`
 	Request         *Request  `json:"request"`
 	Response        *Response `json:"response"`
@@ -61,6 +60,13 @@ type SingleItemMap struct {
 	Value *string `json:"value"`
 }
 
+// PostData represents the content type and then two ways to look at the data that's submitted with a POST request
+type PostData struct {
+	MimeType string          `json:"mimeType,omitempty"`
+	Text     string          `json:"text,omitempty"`
+	Params   []SingleItemMap `json:"params,omitempty"`
+}
+
 // Cookie is a slightly more complex SingleItemMap
 type Cookie struct {
 	SingleItemMap
@@ -74,17 +80,22 @@ type creator struct {
 	Version string `json:"version"`
 }
 
+type page struct {
+	Started     string     `json:"startedDateTime"`
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	PageTimings pageTiming `json:"pageTimings"`
+}
+
+type pageTiming struct {
+	OnContentLoad float64 `json:"onContentLoad"`
+	OnLoad        float64 `json:"onLoad"`
+}
+
 type content struct {
 	Size        int    `json:"size"`
 	MimeType    string `json:"mimeType"`
 	Compression int    `json:"compression,omitempty"`
-}
-
-// PostData represents the content type and then two ways to look at the data that's submitted with a POST request
-type PostData struct {
-	MimeType string          `json:"mimeType,omitempty"`
-	Text     string          `json:"text,omitempty"`
-	Params   []SingleItemMap `json:"params,omitempty"`
 }
 
 type cache struct{}

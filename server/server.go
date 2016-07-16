@@ -4,15 +4,13 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"path"
-	"path/filepath"
-	"runtime"
 	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 
 	"github.com/JackDanger/traffic/parser"
+	"github.com/JackDanger/traffic/util"
 )
 
 // NewServer returns an instance of http.Server ready to listen on the given
@@ -54,7 +52,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// TODO: read from the db
-	har, err := parser.HarFrom(currentDir() + "/../fixtures/browse-two-github-users.har")
+	har, err := parser.HarFrom(util.Root() + "fixtures/browse-two-github-users.har")
 
 	if err != nil {
 		fail(err, w)
@@ -62,7 +60,7 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := []parser.HarWrapper{
-		parser.HarWrapper{Har: *har},
+		parser.HarWrapper{Har: har},
 	}
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
@@ -121,7 +119,7 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 func StartHar(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// TODO: read from the db
-	har, err := parser.HarFrom(currentDir() + "/../fixtures/browse-two-github-users.har")
+	har, err := parser.HarFrom(util.Root() + "fixtures/browse-two-github-users.har")
 
 	if err != nil {
 		fail(err, w)
@@ -129,7 +127,7 @@ func StartHar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := []parser.HarWrapper{
-		parser.HarWrapper{Har: *har},
+		parser.HarWrapper{Har: har},
 	}
 	contentJSON, err := json.Marshal(content)
 	if err != nil {
@@ -141,15 +139,9 @@ func StartHar(w http.ResponseWriter, r *http.Request) {
 	w.Write(contentJSON)
 }
 
-// Points to this file's parent directory
-func currentDir() string {
-	_, filename, _, _ := runtime.Caller(1)
-	return filepath.Base(path.Dir(filename))
-}
-
 // Extracts the contents of a provided file from "server/_site/:filename"
 func webFile(filename string) ([]byte, error) {
-	bytes, err := ioutil.ReadFile(currentDir() + "/_site/" + filename)
+	bytes, err := ioutil.ReadFile(util.Root() + "server/_site/" + filename)
 	if err != nil {
 		return nil, err
 	}

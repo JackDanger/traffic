@@ -13,7 +13,7 @@ import (
 func TestPlay(t *testing.T) {
 
 	executor := testExecutor(t)
-	entry := util.MakeEntry(t)
+	entry := util.MakeEntry()
 	runner := &Runner{
 		Har: &model.Har{
 			Entries: []model.Entry{*entry},
@@ -29,7 +29,7 @@ func TestPlay(t *testing.T) {
 
 func TestRunWholeTar(t *testing.T) {
 
-	har := util.Fixture(t)
+	har := util.Fixture()
 	entryCount := len(har.Entries)
 	if len(har.Entries) <= 1 {
 		t.Fatalf("Expected there to be at least 2 entries, found %d", len(har.Entries))
@@ -48,7 +48,7 @@ func TestRunWholeTar(t *testing.T) {
 }
 
 func TestRunWithComplexTranforms(t *testing.T) {
-	har := util.Fixture(t)
+	har := util.Fixture()
 	entryCount := len(har.Entries)
 	if len(har.Entries) <= 1 {
 		t.Fatalf("Expected there to be at least 2 entries, found %d", len(har.Entries))
@@ -149,7 +149,7 @@ type mockExecutor struct {
 func testExecutor(t *testing.T) mockExecutor {
 	return mockExecutor{
 		t:                 t,
-		Response:          *util.MakeResponse(t),
+		Response:          *util.MakeResponse(),
 		ProcessedRequests: &[]mockRequest{},
 	}
 }

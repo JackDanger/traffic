@@ -1,11 +1,8 @@
 package persistence
 
 import (
-	"crypto/rand"
 	"database/sql"
 	"encoding/json"
-	"fmt"
-	"io"
 	"time"
 
 	// Unsure why all examples require this package folded into the current namespace
@@ -14,6 +11,7 @@ import (
 
 	"github.com/JackDanger/traffic/model"
 	"github.com/JackDanger/traffic/parser"
+	"github.com/JackDanger/traffic/util"
 )
 
 var schema = `CREATE TABLE IF NOT EXISTS archive (
@@ -67,7 +65,7 @@ func db() *squalor.DB {
 // Store persists a Har to the database
 func Store(har *model.Har) (*Archive, error) {
 	archive := &Archive{
-		Token:     UUID(),
+		Token:     util.UUID(),
 		Source:    parser.HarToJSON(har),
 		CreatedAt: time.Now(),
 	}
@@ -86,18 +84,4 @@ func List() ([]Archive, error) {
 
 	}
 	return []Archive{}, nil
-}
-
-// UUID generates a 16-byte globally unique token
-func UUID() string {
-	uuid := make([]byte, 16)
-	n, err := io.ReadFull(rand.Reader, uuid)
-	if n != len(uuid) || err != nil {
-		panic("how did we get a wrong-sized uuid?: " + string(uuid))
-	}
-	// variant bits; see section 4.1.1
-	uuid[8] = uuid[8]&^0xc0 | 0x80
-	// version 4 (pseudo-random); see section 4.1.3
-	uuid[6] = uuid[6]&^0xf0 | 0x40
-	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }

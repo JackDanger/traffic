@@ -1,49 +1,40 @@
 package util
 
 import (
-	"os"
+	"crypto/rand"
+	"fmt"
+	"io"
 	"path"
 	"runtime"
-	"testing"
 
 	"github.com/JackDanger/traffic/model"
 	"github.com/JackDanger/traffic/parser"
 )
 
 // Fixture returns a Har from the ./fixtures directory
-func Fixture(t *testing.T, name ...*string) model.Har {
-	var fixture string
-	if len(name) == 0 {
-		fixture = "../fixtures/browse-two-github-users.har"
-	} else {
-		fixture = *name[0]
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+func Fixture() model.Har {
+	fixture := "browse-two-github-users.har"
 
-	pathToFixture := cwd + "/" + fixture
-	har, err := parser.HarFromFile(pathToFixture)
+	har, err := parser.HarFromFile(Root() + "fixtures/" + fixture)
 	if err != nil {
-		t.Fatal(err)
+		panic(err) // should not happen
 	}
 	return *har
 }
 
 // MakeEntry retrieves one of the entriers from the fixture file
-func MakeEntry(t *testing.T) *model.Entry {
-	return &Fixture(t).Entries[0]
+func MakeEntry() *model.Entry {
+	return &Fixture().Entries[0]
 }
 
 // MakeRequest fixture
-func MakeRequest(t *testing.T) *model.Request {
-	return MakeEntry(t).Request
+func MakeRequest() *model.Request {
+	return MakeEntry().Request
 }
 
 // MakeResponse fixture
-func MakeResponse(t *testing.T) *model.Response {
-	return MakeEntry(t).Response
+func MakeResponse() *model.Response {
+	return MakeEntry().Response
 }
 
 // StringPtr is a simply way to get a pointer to a string literal
@@ -67,4 +58,18 @@ func Any(pairs []model.SingleItemMap, f pairwiseFunc) bool {
 func Root() string {
 	_, filename, _, _ := runtime.Caller(1)
 	return path.Dir(filename) + "/../"
+}
+
+// UUID generates a 16-byte globally unique token
+func UUID() string {
+	uuid := make([]byte, 16)
+	n, err := io.ReadFull(rand.Reader, uuid)
+	if n != len(uuid) || err != nil {
+		panic("how did we get a wrong-sized uuid?: " + string(uuid))
+	}
+	// variant bits; see section 4.1.1
+	uuid[8] = uuid[8]&^0xc0 | 0x80
+	// version 4 (pseudo-random); see section 4.1.3
+	uuid[6] = uuid[6]&^0xf0 | 0x40
+	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }

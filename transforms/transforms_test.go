@@ -10,7 +10,7 @@ import (
 )
 
 func TestConstantTransformReplacesInRequestURL(t *testing.T) {
-	r := util.MakeRequest(t)
+	r := util.MakeRequest()
 
 	transform := &ConstantTransform{
 		Search:  "JackDanger",
@@ -40,7 +40,7 @@ func TestConstantTransformReplacesInRequestURL(t *testing.T) {
 }
 
 func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T) {
-	request := util.MakeRequest(t)
+	request := util.MakeRequest()
 	request.Headers = append(request.Headers, model.SingleItemMap{
 		Key:   util.StringPtr("PreviousKey"),
 		Value: util.StringPtr("PreviousValue"),
@@ -114,7 +114,7 @@ func TestConstantTransformReplacesInHeadersAndCookiesAndQueryString(t *testing.T
 }
 
 func TestHeaderInjectionTransform(t *testing.T) {
-	request := util.MakeRequest(t)
+	request := util.MakeRequest()
 
 	if util.Any(request.Headers, func(key, value *string) bool {
 		return *key == "newKey" || *value == "newValue"
@@ -137,8 +137,8 @@ func TestHeaderInjectionTransform(t *testing.T) {
 }
 
 func TestBodyToHeaderTransform(t *testing.T) {
-	request := util.MakeRequest(t)
-	response := util.MakeResponse(t)
+	request := util.MakeRequest()
+	response := util.MakeResponse()
 
 	// TODO: disallow creating patterns that don't have zero or one capture groups
 	requestTransform := BodyToHeaderTransform{
@@ -190,8 +190,8 @@ func TestBodyToHeaderTransform(t *testing.T) {
 }
 
 func TestResponseWithComplexBodyToRequestHeaderTransform(t *testing.T) {
-	request := util.MakeRequest(t)
-	response := util.MakeResponse(t)
+	request := util.MakeRequest()
+	response := util.MakeResponse()
 
 	// TODO: disallow creating patterns that don't have zero or one capture groups
 	requestTransform := BodyToHeaderTransform{
@@ -245,8 +245,8 @@ func TestResponseWithComplexBodyToRequestHeaderTransform(t *testing.T) {
 }
 
 func TestHeaderPatternToHeaderTransform(t *testing.T) {
-	request := util.MakeRequest(t)
-	response := util.MakeResponse(t)
+	request := util.MakeRequest()
+	response := util.MakeResponse()
 
 	// TODO: disallow creating patterns that don't have zero or one capture groups
 	requestTransforms := []HeaderToHeaderTransform{

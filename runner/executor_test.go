@@ -44,7 +44,7 @@ func startServer() string {
 	}
 	go server.ListenAndServe()
 	// Wait a moment so the server can boot
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	return "server is running"
 }
 

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 
 	"github.com/JackDanger/traffic/parser"
+	"github.com/JackDanger/traffic/persistence"
 	"github.com/JackDanger/traffic/util"
 )
 
@@ -51,25 +51,28 @@ func Index(w http.ResponseWriter, r *http.Request) {
 // ListHars retrieves all HAR files
 func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	// TODO: read from the db
-	har, err := parser.HarFrom(util.Root() + "fixtures/browse-two-github-users.har")
-
+	db, err := persistence.NewDb()
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
-	content := []parser.HarWrapper{
-		parser.HarWrapper{Har: har},
-	}
-	contentJSON, err := json.Marshal(content)
+	archives, err := db.ListArchives()
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
 	w.WriteHeader(200)
-	w.Write(contentJSON)
+	w.Write([]byte("["))
+	for i := 0; i < len(archives)-1; i++ {
+		w.Write(append(archives[i].AsJSON(), byte(',')))
+	}
+	// And don't add a trailing comma on the last one
+	if len(archives) > 0 {
+		w.Write(archives[len(archives)-1].AsJSON())
+	}
+	w.Write([]byte("]"))
 }
 
 // CreateHar stores a new HAR
@@ -102,16 +105,22 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentJSON, err := json.Marshal(form)
+	har, err := parser.HarFrom(form.Har.Source)
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
-	content := "submitted web form of length: " + strconv.Itoa(int(r.ContentLength)) + " bytes"
-	content += "\n"
-	content += string(contentJSON)
-	w.Write([]byte(content))
+	db, err := persistence.NewDb()
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	archive := persistence.MakeArchive(har)
+	_, err = db.Create(archive)
+
+	w.Write(archive.AsJSON())
 }
 
 // StartHar begins 1 or more runners of a specific HAR file identified by name

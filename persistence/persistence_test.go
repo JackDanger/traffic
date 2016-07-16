@@ -12,17 +12,18 @@ import (
 
 func TestMain(m *testing.M) {
 	// Creates the database if necessary
-	db, err := NewDb("test")
+	db, err := NewDb()
 	if err != nil {
 		panic(err)
 	}
+
 	m.Run()
 
 	db.Truncate()
 }
 
 func TestListArchives(t *testing.T) {
-	db, err := NewDb("test")
+	db, err := NewDb()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +40,7 @@ func TestListArchives(t *testing.T) {
 	}
 
 	// Store it in the db
-	archive, err := db.Create(har)
+	archive, err := db.Create(MakeArchive(har))
 	if err != nil {
 		t.Fatal(err)
 	}

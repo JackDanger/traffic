@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -26,7 +27,13 @@ type DB struct {
 
 // NewDb returns an instance of a single connection to the database. It's the
 // handle we use for performing every database operation.
-func NewDb(environment string) (*DB, error) {
+func NewDb() (*DB, error) {
+	return NewDbForEnv(util.EnvironmentGuess())
+}
+
+// NewDbForEnv allows us to create multiple databases for development, test,
+// staging, or production from the same code base.
+func NewDbForEnv(environment string) (*DB, error) {
 	databaseName := fmt.Sprintf("traffic_%s", environment)
 
 	// Connect to MySQL
@@ -38,7 +45,6 @@ func NewDb(environment string) (*DB, error) {
 	// Wrap the MySQL connection in the Squalor ORM and wrap that in our own DB
 	// type
 	db := &DB{DB: squalor.NewDB(conn)}
-	println("folded")
 
 	// TODO: when performance of this method becomes an issue move this to an
 	// external manual step
@@ -63,14 +69,23 @@ func NewDb(environment string) (*DB, error) {
 	return nil, err
 }
 
-// Create persists a new Har `archive` to the database and generates a token
-// for it.
-func (db *DB) Create(har *model.Har) (*Archive, error) {
-	archive := &Archive{
-		Token:     util.UUID(),
-		Source:    parser.HarToJSON(har),
-		CreatedAt: time.Now(),
+// MakeArchive prepares a model.Har into an Archive that can be stored.
+func MakeArchive(har *model.Har) *Archive {
+	return &Archive{
+		Token:  util.UUID(),
+		Source: parser.HarToJSON(har),
 	}
+}
+
+// Create persists a single Archive and in a very concurrent-unsafe way
+// attempts to prevent multiple insertions.
+func (db *DB) Create(archive *Archive) (*Archive, error) {
+	if archive.CreatedAt != nil {
+		return archive, errors.New("Archive already appears to be persisted")
+	}
+
+	archive.CreatedAt = util.TimePtr(time.Now())
+	fmt.Printf("creating archive %s\n", archive.Token)
 	err := db.Insert(archive)
 	return archive, err
 }

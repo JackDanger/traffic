@@ -17,7 +17,8 @@ import (
 )
 
 func main() {
-	runOneHar()
+	//runOneHar()
+	runTheWebInterface()
 }
 
 func runTheWebInterface() {

@@ -10,6 +10,17 @@ import (
 	"github.com/JackDanger/traffic/util"
 )
 
+func TestMain(m *testing.M) {
+	// Creates the database if necessary
+	db, err := NewDb("test")
+	if err != nil {
+		panic(err)
+	}
+	m.Run()
+
+	db.Truncate()
+}
+
 func TestListArchives(t *testing.T) {
 	db, err := NewDb("test")
 	if err != nil {
@@ -28,7 +39,7 @@ func TestListArchives(t *testing.T) {
 	}
 
 	// Store it in the db
-	archive, err := db.Store(har)
+	archive, err := db.Create(har)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +58,22 @@ func TestListArchives(t *testing.T) {
 	}
 
 	// Then retrieve everything in there
-	hars, err := db.List()
+	archives, err := db.ListArchives()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(hars) < 1 {
+	if len(archives) < 1 {
 		t.Error("Did not retrieve any records")
+	}
+	retrieved := archives[0]
+
+	if retrieved.Token != archive.Token {
+		t.Errorf("Unexpected Token retrieved: %s, expected: %s", retrieved.Token, archive.Token)
+	}
+	if retrieved.Source != archive.Source {
+		t.Errorf("Unexpected Source retrieved: %d / %d", len(retrieved.Source), len(archive.Source))
+	}
+	if retrieved.CreatedAt != archive.CreatedAt {
+		t.Errorf("Unexpected CreatedAt retrieved: %s, expected: %s", retrieved.CreatedAt, archive.CreatedAt)
 	}
 }

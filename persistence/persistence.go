@@ -2,12 +2,12 @@ package persistence
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	// The act of importing a database/sql driver modifies database/sql, you
-	// don't need to reference it.
+	// don't need to reference it unless you need access to things like
+	// mysql.Error
 	"github.com/go-sql-driver/mysql"
 	"github.com/square/squalor"
 
@@ -20,69 +20,52 @@ import (
 // it delegates everything else to Squalor.
 type DB struct {
 	*squalor.DB
+
 	Archives *squalor.Model
 }
-
-var schema = `CREATE TABLE IF NOT EXISTS archives (
-                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                token VARCHAR(16) NOT NULL,
-                source LONGTEXT NOT NULL, -- the JSON contents of the HAR
-                created_at DATETIME NOT NULL
-							); `
 
 // NewDb returns an instance of a single connection to the database. It's the
 // handle we use for performing every database operation.
 func NewDb(environment string) (*DB, error) {
 	databaseName := fmt.Sprintf("traffic_%s", environment)
-	// We use Sqlite3 as our datastore for now
-	conn, err := sql.Open("mysql", fmt.Sprintf("@/%s", databaseName))
+
+	// Connect to MySQL
+	conn, err := sql.Open("mysql", fmt.Sprintf("@/%s?parseTime=true", databaseName))
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the database if necessary
-	maybeCreateDatabase(databaseName, conn)
+	// Wrap the MySQL connection in the Squalor ORM and wrap that in our own DB
+	// type
+	db := &DB{DB: squalor.NewDB(conn)}
+	println("folded")
 
-	// Create the tables if necessary
-	rows, err := conn.Query(schema)
-	defer rows.Close()
+	// TODO: when performance of this method becomes an issue move this to an
+	// external manual step
+	err = db.Migrate(databaseName)
 	if err != nil {
-		fmt.Printf("error migrating: %s\n", err)
-		return nil, err
+		fmt.Println("persistence/persistence.go:49 ", err)
 	}
-	rows.Next() // This is the line that actually persists the DDL statement, for some reason (???)
-
-	// Wrap the Sqlite3 connection in the Squalor ORM
-	db := squalor.NewDB(conn)
 
 	// Connect specific tables to specific struct types
 	archives, err := db.BindModel("archives", Archive{})
-	if err != nil {
-		fmt.Printf("x: %#v, err: %#v / %+v", archives, err, err)
+	db.Archives = archives
+	if err == nil {
+		return db, nil
 	}
 
-	d := &DB{DB: db, Archives: archives}
-	return d, nil
+	switch err.(type) {
+	case *mysql.MySQLError:
+		fmt.Println(err.Error())
+	default:
+		fmt.Println(err.Error())
+	}
+	return nil, err
 }
 
-// Archive represents the database format of a single named model.Har. It's
-// able to serialize and deserialize the source.
-type Archive struct {
-	ID        int       `json:"-"db:"id"`
-	Token     string    `json:"token"db:"token"`
-	Source    string    `json:"source"db:"source"`
-	CreatedAt time.Time `json:"created_at"db:"created_at"`
-}
-
-// Model deserializes a Har instance from the databse source string
-func (a *Archive) Model() (*model.Har, error) {
-	wrapper := &parser.HarWrapper{}
-	err := json.Unmarshal([]byte(a.Source), wrapper)
-	return wrapper.Har, err
-}
-
-// Store persists a Har to the database
-func (db *DB) Store(har *model.Har) (*Archive, error) {
+// Create persists a new Har `archive` to the database and generates a token
+// for it.
+func (db *DB) Create(har *model.Har) (*Archive, error) {
 	archive := &Archive{
 		Token:     util.UUID(),
 		Source:    parser.HarToJSON(har),
@@ -92,33 +75,53 @@ func (db *DB) Store(har *model.Har) (*Archive, error) {
 	return archive, err
 }
 
-// List returns all of the har records from the database as model instances
-func (db *DB) List() ([]Archive, error) {
+// ListArchives returns all of the har records from the database as model instances
+func (db *DB) ListArchives() ([]Archive, error) {
 	var records []Archive
 	err := db.Select(&records, db.Archives.Select("*"))
 	return records, err
 }
 
-func maybeCreateDatabase(databaseName string, conn *sql.DB) {
-	rows, err := conn.Query(fmt.Sprintf("SHOW TABLES FROM %s", databaseName))
-	if err == nil {
-		rows.Next()
-		rows.Close()
-		return
-	}
+// Migrate will create the database if necessary and apply necessary migrations.
+func (db *DB) Migrate(databaseName string) error {
+	// Create the tables if necessary
+	err := MigrateSQL(db.DB.DB, Archive{}.Schema())
 
 	switch err.(type) {
 	case *mysql.MySQLError:
+		// "database does not exist" error
 		if err.(*mysql.MySQLError).Number == 0x419 {
-			conn2, err := sql.Open("mysql", "@/mysql")
-			rows, err = conn2.Query(fmt.Sprintf("CREATE DATABASE %s", databaseName))
+			// Connect to a db that we know exists and then run the CREATE DATABASE query
+			conn, err := sql.Open("mysql", "@/mysql?parseTime=true")
 			if err != nil {
-				panic(err)
+				return err
 			}
-			rows.Next()
-			rows.Close()
+			err = MigrateSQL(conn, fmt.Sprintf("CREATE DATABASE  %s", databaseName))
+			if err != nil {
+				return err
+			}
+			// Create the tables if we just created the database
+			err = MigrateSQL(db.DB.DB, Archive{}.Schema())
 		}
-	default:
-		panic(err)
 	}
+	return err
+}
+
+// MigrateSQL performs a single DDL
+func MigrateSQL(conn *sql.DB, query string) error {
+	rows, err := conn.Query(query)
+	if err != nil {
+		fmt.Printf("error migrating: %s\n", err)
+		return err
+	}
+	rows.Next()
+	rows.Close()
+	return nil
+}
+
+// Truncate is a misnomer because for small (< 1 million) records "DELETE FROM
+// table" is faster than "TRUNCATE table" in MySQL as TRUNCATE operates at a
+// very slow O(1) and Delete is a more rapid O(n) for a very small n.
+func (db *DB) Truncate() {
+	db.Archives.Delete()
 }

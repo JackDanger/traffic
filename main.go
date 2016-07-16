@@ -21,7 +21,7 @@ func main() {
 }
 
 func runTheWebInterface() {
-	err := persistence.Initialize()
+	_, err := persistence.NewDb()
 	if err != nil {
 		fmt.Println(err.Error())
 		return

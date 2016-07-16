@@ -35,11 +35,41 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if normalizedJSON(escaped(jsonSource), t) != normalizedJSON(roundtrip, t) {
-		ioutil.WriteFile(pathToOut, escaped(roundtrip), 0600)
-		ioutil.WriteFile(pathToOut+".escapedoriginal", escaped(jsonSource), 0600)
+	normalizedSource := normalizedJSON(jsonSource, t)
+	normalizedRoundtrip := normalizedJSON(roundtrip, t)
+	if normalizedSource != normalizedRoundtrip {
+		ioutil.WriteFile(pathToOut, []byte(normalizedRoundtrip), 0600)
+		ioutil.WriteFile(pathToOut+".escapedoriginal", []byte(normalizedSource), 0600)
 		t.Errorf("the json source wasn't the same.\n compare with: \ndiff -w fixtures/browse-two-github-users.har.roundtrip*")
 	}
+}
+
+func TestUnquoteJSON(t *testing.T) {
+	type structure struct {
+		Link string `json:"link"`
+	}
+	source := `{"link":"<a href=\"/substitution.html\">search & replace</a>"}`
+	withQuotes := `{"link":"\u003ca href=\"/substitution.html\"\u003esearch \u0026 replace\u003c/a\u003e"}`
+	holdsIt := &structure{}
+	err := json.Unmarshal([]byte(source), holdsIt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	quoted, err := json.Marshal(holdsIt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(quoted) != withQuotes {
+		t.Errorf("should have been equal:\n%s\n%s", quoted, withQuotes)
+	}
+
+	unquoted := UnquoteJSON(string(quoted))
+	if unquoted != source {
+		t.Errorf("should have been equal:\n%s\n%s", unquoted, source)
+	}
+
 }
 
 // test helpers
@@ -50,11 +80,5 @@ func normalizedJSON(input []byte, t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return output.String()
-}
-
-func escaped(input []byte) []byte {
-	buf := &bytes.Buffer{}
-	json.HTMLEscape(buf, input)
-	return buf.Bytes()
+	return UnquoteJSON(output.String())
 }

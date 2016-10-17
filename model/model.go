@@ -52,15 +52,16 @@ type Response struct {
 	TransferSize *int            `json:"_transferSize,omitempty"`
 }
 
-// SingleItemMap is a single key-value pair because that's how HAR represents
-// headers and cookies. The headers are a list of single-element maps, not a
-// single unified map.
+// SingleItemMap is a single key-value pair because that's how HAR
+// represents headers and cookies. The headers are a list of
+// single-element maps, not a single unified map.
 type SingleItemMap struct {
 	Key   *string `json:"name"`
 	Value *string `json:"value"`
 }
 
-// PostData represents the content type and then two ways to look at the data that's submitted with a POST request
+// PostData represents the content type and then two ways to look at the
+// data that's submitted with a POST request
 type PostData struct {
 	MimeType string          `json:"mimeType,omitempty"`
 	Text     string          `json:"text,omitempty"`

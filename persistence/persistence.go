@@ -90,14 +90,16 @@ func (db *DB) Create(archive *Archive) (*Archive, error) {
 	return archive, err
 }
 
-// ListArchives returns all of the har records from the database as model instances
+// ListArchives returns all of the har records from the database as model
+// instances
 func (db *DB) ListArchives() ([]Archive, error) {
 	var records []Archive
 	err := db.Select(&records, db.Archives.Select("*"))
 	return records, err
 }
 
-// Migrate will create the database if necessary and apply necessary migrations.
+// Migrate will create the database if necessary and apply necessary
+// migrations.
 func (db *DB) Migrate(databaseName string) error {
 	// Create the tables if necessary
 	err := MigrateSQL(db.DB.DB, Archive{}.Schema())
@@ -106,7 +108,8 @@ func (db *DB) Migrate(databaseName string) error {
 	case *mysql.MySQLError:
 		// "database does not exist" error
 		if err.(*mysql.MySQLError).Number == 0x419 {
-			// Connect to a db that we know exists and then run the CREATE DATABASE query
+			// Connect to a db that we know exists and then run the CREATE DATABASE
+			// query
 			conn, err := sql.Open("mysql", "@/mysql?parseTime=true")
 			if err != nil {
 				return err

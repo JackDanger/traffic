@@ -7,8 +7,8 @@ import (
 	"github.com/JackDanger/traffic/model"
 )
 
-// HarWrapper exists because the HAR file contains a top-level key called "log"
-// which most of the time we'll pretend isn't there.
+// HarWrapper exists because the HAR file contains a top-level key
+// called "log" which most of the time we'll pretend isn't there.
 type HarWrapper struct {
 	Har *model.Har `json:"log"`
 }
@@ -23,7 +23,8 @@ func HarFrom(source string) (*model.Har, error) {
 	return wrapper.Har, nil
 }
 
-// HarFromFile parses the .har file at the given path and returns a full Har instance.
+// HarFromFile parses the .har file at the given path and returns a full
+// Har instance.
 func HarFromFile(path string) (*model.Har, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {

@@ -18,7 +18,8 @@ const (
 	Pause Operation = iota
 	// Stop will halt the goroutine and remove it from the running tasks
 	Stop
-	// Continue will un-pause a goroutine. Has no effect on non-paused goroutines.
+	// Continue will un-pause a goroutine. Has no effect on non-paused
+	// goroutines.
 	Continue
 )
 
@@ -108,8 +109,8 @@ func (r *Runner) begin() error {
 					r.DoneChannel <- true
 					return // This is where we shut the whole routine down
 				}
-			// Check if there's another request to make. If so, play it (play() spawns
-			// a goroutine and returns immediately)
+			// Check if there's another request to make. If so, play it (play()
+			// spawns a goroutine and returns immediately)
 			case entryIndex := <-r.currentEntryNumChannel:
 				if len(r.Har.Entries) > entryIndex {
 					r.play(entryIndex)

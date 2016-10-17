@@ -12,8 +12,8 @@ import (
 	"github.com/JackDanger/traffic/util"
 )
 
-// Executor is anything that can perform HTTP requests (it's an interface so we
-// can mock it in tests)
+// Executor is anything that can perform HTTP requests (it's an
+// interface so we can mock it in tests)
 type Executor interface {
 	Get(model.Request) (*model.Response, error)
 	Post(model.Request) (*model.Response, error)
@@ -23,9 +23,10 @@ type Executor interface {
 	Patch(model.Request) (*model.Response, error)
 }
 
-// HTTPExecutor has methods that accept a request from a HAR file and make a
-// connection to the actual URL specified in each request. The HTTP response is
-// then placed into a model.Response object and returned.
+// HTTPExecutor has methods that accept a request from a HAR file and
+// make a connection to the actual URL specified in each request. The
+// HTTP response is then placed into a model.Response object and
+// returned.
 type HTTPExecutor struct {
 	client      http.Client
 	logger      Logger
@@ -101,12 +102,12 @@ func (e *HTTPExecutor) toModelResponse(h *http.Response, err error) *model.Respo
 	headers := []model.SingleItemMap{}
 	for key, values := range h.Header {
 		// HTTP allows you to send the same header key multiple times and
-		// http.Header stores a collapsed version of all headers with the same key.
-		// Here we explode them back out.
+		// http.Header stores a collapsed version of all headers with the
+		// same key.  Here we explode them back out.
 		for _, value := range values {
 			headers = append(headers, model.SingleItemMap{
-				// Make a copy of the string otherwise we store the address and this
-				// loop reuses the address each time through.
+				// Make a copy of the string otherwise we store the address and
+				// this loop reuses the address each time through.
 				Key:   util.StringPtr(key),
 				Value: &value,
 			})
@@ -148,8 +149,8 @@ func (e *HTTPExecutor) fromModelRequest(req *http.Request, modelRequest *model.R
 		return
 	}
 
-	// We must have manually provided a Content-Type header, don't try to intuit
-	// one from the PostData
+	// We must have manually provided a Content-Type header, don't try to
+	// intuit one from the PostData
 	if modelRequest.PostData != nil {
 		req.Header.Set("Content-Type", modelRequest.PostData.MimeType)
 	} else {
@@ -160,7 +161,8 @@ func (e *HTTPExecutor) log(s ...interface{}) {
 	e.logger.Println(s...)
 }
 
-// GetLastRequest is used in testing to assert we've properly transformed inbound values
+// GetLastRequest is used in testing to assert we've properly
+// transformed inbound values
 func (e *HTTPExecutor) GetLastRequest() *http.Request {
 	return e.lastRequest
 }
@@ -186,13 +188,15 @@ func (e *HTTPExecutor) readBody(req *http.Response) []byte {
 	return body
 }
 
-// Logger encapsulates printing to the screen or a file or a variable under test.
+// Logger encapsulates printing to the screen or a file or a variable
+// under test.
 type Logger struct {
 	name   string
 	device io.Writer
 }
 
-// Println sends to the logging device what fmt.Println sends to os.Stdout
+// Println sends to the logging device what fmt.Println sends to
+// os.Stdout
 func (l *Logger) Println(s ...interface{}) {
 	line := []byte(l.name)
 	line = append(line, []byte(": ")...)

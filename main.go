@@ -27,10 +27,14 @@ func runTheWebInterface() {
 		fmt.Println(err.Error())
 		return
 	}
-	web := server.NewServer("8000")
+	// TODO: extract to CLI flag
+	port := "8000"
+
+	web := server.NewServer(port)
+	fmt.Printf("Starting Traffic server on https://%s:%s\n", "localhost", port)
 	err = web.ListenAndServeTLS("server/cert.pem", "server/key.pem")
 	if err != nil {
-		println("Error starting server: ", err.Error())
+		fmt.Printf("Error starting server: %#v", err.Error())
 	}
 }
 

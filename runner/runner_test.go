@@ -27,7 +27,7 @@ func TestPlay(t *testing.T) {
 	}
 }
 
-func TestRunWholeTar(t *testing.T) {
+func TestRunWholeHar(t *testing.T) {
 
 	har := util.Fixture()
 	entryCount := len(har.Entries)

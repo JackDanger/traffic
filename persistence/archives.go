@@ -11,10 +11,11 @@ import (
 // Archive represents the database format of a single named model.Har.
 // It's able to serialize and deserialize the source.
 type Archive struct {
-	ID        int64      `json:"-"db:"id"`
-	Token     string     `json:"token"db:"token"`
-	Source    string     `json:"source"db:"source"`
-	CreatedAt *time.Time `json:"created_at"db:"created_at"`
+	ID          int64      `json:"-"db:"id"`
+	Token       string     `json:"token"db:"token"`
+	Source      string     `json:"source"db:"source"`
+	Description string     `json:"description"db:"description"`
+	CreatedAt   *time.Time `json:"created_at"db:"created_at"`
 }
 
 // Model deserializes a Har instance from the database source string
@@ -38,6 +39,7 @@ func (a Archive) Schema() string {
     CREATE TABLE IF NOT EXISTS archives (
       id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
       token VARCHAR(16) NOT NULL,
+      description text NOT NULL, -- Let everybody know how to use this
       source LONGTEXT NOT NULL, -- the JSON contents of the HAR
       created_at DATETIME NOT NULL
     );`

@@ -37,7 +37,7 @@ func NewDbForEnv(environment string) (*DB, error) {
 	databaseName := fmt.Sprintf("traffic_%s", environment)
 
 	// Connect to MySQL
-	conn, err := sql.Open("mysql", fmt.Sprintf("@/%s?parseTime=true", databaseName))
+	conn, err := sql.Open("mysql", fmt.Sprintf("root@/%s?parseTime=true", databaseName))
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (db *DB) Migrate(databaseName string) error {
 		if err.(*mysql.MySQLError).Number == 0x419 {
 			// Connect to a db that we know exists and then run the CREATE DATABASE
 			// query
-			conn, err := sql.Open("mysql", "@/mysql?parseTime=true")
+			conn, err := sql.Open("mysql", "root@/mysql?parseTime=true")
 			if err != nil {
 				return err
 			}

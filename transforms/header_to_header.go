@@ -36,7 +36,7 @@ import (
 //     }
 //
 type HeaderToHeaderTransform struct {
-	ResponseKey string // which header to read the value out of. If blank, all headers will be checked for a mataching pattern.
+	ResponseKey string // which header to read the value out of. If blank, all headers will be checked for a matching pattern.
 	Pattern     string // interpreted as a regular expression
 	RequestKey  string // which header to put the matched string into
 	Before      string // What to put into the header value before the match
@@ -73,7 +73,7 @@ func (t HeaderToHeaderTransform) maybeRelace(header *model.SingleItemMap) *Heade
 
 	// If t.ResponseKey is nil then we try to match Pattern against any header header
 	if t.ResponseKey != "" && *header.Key != t.ResponseKey {
-		fmt.Println("transforms/header_to_header.go:76 ", t.ResponseKey, "didn't matach ", *header.Key)
+		fmt.Println("transforms/header_to_header.go:76 ", t.ResponseKey, "didn't match ", *header.Key)
 		return nil
 	}
 

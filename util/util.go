@@ -1,10 +1,12 @@
 package util
 
 import (
+	"bytes"
 	"crypto/rand"
 	"flag"
 	"fmt"
 	"io"
+	"os/exec"
 	"path"
 	"runtime"
 	"time"
@@ -87,5 +89,21 @@ func EnvironmentGuess() string {
 	if flag.Lookup("test.v") != nil {
 		return "test"
 	}
+	// TODO: really, let's just use CLI flags for this.
+	if uname() == "Darwin\n" {
+		return "development"
+	}
 	return "production"
+}
+
+func uname() string {
+	cmd := exec.Command("uname")
+
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	err := cmd.Run()
+	if err != nil {
+		return ""
+	}
+	return output.String()
 }

@@ -14,8 +14,7 @@ import (
 )
 
 // NewServer returns an instance of http.Server ready to listen on the given
-// port. Calling ListenAndServe on it is a blocking call and should likely be
-// in a goroutine somewhere:
+// port. Calling ListenAndServe on it is a blocking call:
 //   server.NewServer("8080").ListenAndServe()
 func NewServer(port string) *http.Server {
 

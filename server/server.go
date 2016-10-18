@@ -3,7 +3,9 @@ package server
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -21,11 +23,14 @@ func NewServer(port string) *http.Server {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", Index).Methods("GET")
-	r.HandleFunc("/hars", ListHars).Methods("GET")
-	r.HandleFunc("/hars", CreateHar).Methods("POST")
+	r.HandleFunc("/javascript.js", Javascript).Methods("GET")
+	r.HandleFunc("/archives", ListHars).Methods("GET")
+	r.HandleFunc("/archives", CreateHar).Methods("POST")
+	r.HandleFunc("/archives/{token}", UpdateHar).Methods("PUT")
+	r.HandleFunc("/archives/{token}", DeleteHar).Methods("DELETE")
 	r.HandleFunc("/start", StartHar).Methods("POST")
 
-	handler := http.NewServeMux()
+	handler := newLoggedMux()
 	handler.Handle("/", r)
 
 	return &http.Server{
@@ -38,6 +43,19 @@ func NewServer(port string) *http.Server {
 func Index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	content, err := webFile("index.html")
+
+	if err != nil {
+		fail(err, w)
+		return
+	}
+	w.WriteHeader(200)
+	w.Write(content)
+}
+
+// Javascript turns JSX into JS and renders is
+func Javascript(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript")
+	content, err := webFile("javascript.js")
 
 	if err != nil {
 		fail(err, w)
@@ -74,6 +92,18 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("]"))
 }
 
+// Form is the top-level HTTP form param
+type Form struct {
+	Har HarParam `json:"form",schema:"har"`
+}
+
+// HarParam is the archive data nested inside Form
+type HarParam struct {
+	Name        string `json:"name",schema:"name"`
+	Description string `json:"description",schema:"description"`
+	Source      string `json:"source",schema:"source"`
+}
+
 // CreateHar stores a new HAR
 func CreateHar(w http.ResponseWriter, r *http.Request) {
 	// Extracts form values into a url.Values (map[string][]string) instance.
@@ -88,14 +118,6 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type H struct {
-		Name        string `json:"name",schema:"name"`
-		Description string `json:"description",schema:"description"`
-		Source      string `json:"source",schema:"source"`
-	}
-	type Form struct {
-		Har H `json:"form",schema:"har"`
-	}
 	form := &Form{}
 	decoder := schema.NewDecoder()
 	// r.PostForm is a map of our POST form values
@@ -123,6 +145,23 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 	w.Write(archive.AsJSON())
 }
 
+// UpdateHar stores a new HAR
+func UpdateHar(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	if params["token"] == "" {
+		w.WriteHeader(404)
+		w.Write([]byte(`{"success": "nope"}`))
+	}
+	w.WriteHeader(200)
+	w.Write([]byte(`{"success": "sure"}`))
+}
+
+// DeleteHar stores a new HAR
+func DeleteHar(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+	w.Write([]byte(`{"success": "sure"}`))
+}
+
 // StartHar begins 1 or more runners of a specific HAR file identified by name
 // (for now, eventually it'll be by token from the db)
 func StartHar(w http.ResponseWriter, r *http.Request) {
@@ -146,6 +185,25 @@ func StartHar(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(200)
 	w.Write(contentJSON)
+}
+
+// LoggedMux is a wrapper around http.ServeMux that logs all requests to STDERR
+type LoggedMux struct {
+	*http.ServeMux
+	log *log.Logger
+}
+
+func newLoggedMux() *LoggedMux {
+	var mux = &LoggedMux{}
+	mux.ServeMux = http.NewServeMux()
+	mux.log = log.New(os.Stderr, "", log.LstdFlags)
+	return mux
+}
+
+// ServeHTTP delegates to the internal ServeMux and then logs
+func (mux *LoggedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	mux.ServeMux.ServeHTTP(w, r)
+	mux.log.Printf("%s %s", r.Method, r.URL.Path)
 }
 
 // Extracts the contents of a provided file from "server/_site/:filename"

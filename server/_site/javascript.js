@@ -1,0 +1,163 @@
+const Title = () => {
+  return React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        null,
+        React.createElement(
+          'h1',
+          null,
+          'Traffic'
+        )
+      )
+    )
+}
+
+const inputGroup = (inputType, fieldName, refBinding) => {
+  return React.createElement(
+    'div',
+    { className: 'inputGroup form-group' },
+    React.createElement('label',
+      {
+        htmlFor: 'archive.' + fieldName,
+        className: ''
+      },
+      fieldName
+    ),
+    React.createElement(inputType, {
+      ref: refBinding,
+      name: 'archive.' + fieldName,
+      className: 'form-control'
+    })
+  )
+}
+
+const ArchiveForm = ({ addArchive }) => {
+  // Input tracker
+  let name, description, source;
+
+  return React.createElement(
+    'fieldset',
+    { className: 'archiveForm' },
+    inputGroup('input', 'name', node => { name = node }),
+    inputGroup('input', 'description', node => { description = node }),
+    inputGroup('textarea', 'source', node => { source = node }),
+    React.createElement(
+      'legend',
+      null,
+      'Add a new archive'
+    ),
+    React.createElement(
+      'button',
+      { onClick: () => {
+          addArchive(name.value, description.value, source.value);
+          name.value = '';
+          description.value = '';
+          source.value = '';
+        } },
+      'Save HAR as Traffic Archive'
+    )
+  );
+};
+
+const Archive = ({ archive, remove }) => {
+  // Each Archive
+  return React.createElement(
+    'div',
+    {
+      name: archive.name,
+      remove: remove,
+      token: archive.token,
+      className: "archive",
+      onClick: () => {
+        console.log(archive.token);
+      }
+    },
+    React.createElement(
+      "div",
+      { className: "name" },
+      archive.name
+    ),
+    React.createElement(
+      "div",
+      { className: "description" },
+      archive.description
+    )
+  );
+};
+
+const ArchiveList = ({ archives, remove }) => {
+  // Map through the archives
+  const archiveNode = archives.map(archive => {
+    return React.createElement(Archive, { key: archive.token, archive: archive, name: archive.name, remove: remove });
+  });
+  return React.createElement(
+    'div',
+    null,
+    archiveNode
+  );
+};
+
+// Contaner Component (Ignore for now)
+class TrafficApp extends React.Component {
+  constructor(props) {
+    // Pass props to parent class
+    super(props);
+    // Set initial state
+    this.state = {
+      data: []
+    };
+    this.apiUrl = '/archives';
+  }
+
+  // Lifecycle method
+  componentDidMount() {
+    // Make HTTP reques with Axios
+    axios.get(this.apiUrl).then(res => {
+      // Set state with result
+      this.setState({ data: res.data });
+    });
+  }
+
+  // Add archive handler
+  addArchive(name, description, source) {
+    // Assemble data
+    const archive = {
+      name: name,
+      description: description,
+      source: source,
+    };
+    // Update data
+    axios.post(this.apiUrl, archive).then(res => {
+      this.state.data.push(res.data);
+      this.setState({ data: this.state.data });
+    });
+  }
+
+  // Handle remove
+  handleRemove(token) {
+    // Filter all archives except the one to be removed
+    const remainder = this.state.data.filter(archive => {
+      if (archive.token !== token) return archive;
+    });
+    // Update state with filter
+    axios.delete(this.apiUrl + '/' + token).then(res => {
+      this.setState({ data: remainder });
+    });
+  }
+
+  render() {
+    return React.createElement(
+      'div',
+      null,
+      React.createElement(Title, null),
+      React.createElement(ArchiveForm, null),
+      React.createElement(ArchiveList, {
+        archives: this.state.data,
+        remove: this.handleRemove.bind(this)
+      })
+    );
+  }
+}
+ReactDOM.render(React.createElement(TrafficApp, null), document.getElementById('container'));

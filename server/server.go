@@ -89,8 +89,9 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type H struct {
-		Name   string `json:"name",schema:"name"`
-		Source string `json:"source",schema:"source"`
+		Name        string `json:"name",schema:"name"`
+		Description string `json:"description",schema:"description"`
+		Source      string `json:"source",schema:"source"`
 	}
 	type Form struct {
 		Har H `json:"form",schema:"har"`
@@ -116,7 +117,7 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	archive := persistence.MakeArchive(har)
+	archive := persistence.MakeArchive(form.Har.Name, form.Har.Description, har)
 	_, err = db.Create(archive)
 
 	w.Write(archive.AsJSON())

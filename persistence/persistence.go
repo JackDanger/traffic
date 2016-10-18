@@ -70,10 +70,12 @@ func NewDbForEnv(environment string) (*DB, error) {
 }
 
 // MakeArchive prepares a model.Har into an Archive that can be stored.
-func MakeArchive(har *model.Har) *Archive {
+func MakeArchive(name, description string, har *model.Har) *Archive {
 	return &Archive{
-		Token:  util.UUID(),
-		Source: parser.HarToJSON(har),
+		Token:       util.UUID(),
+		Name:        name,
+		Description: description,
+		Source:      parser.HarToJSON(har),
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 type Archive struct {
 	ID          int64      `json:"-"db:"id"`
 	Token       string     `json:"token"db:"token"`
+	Name        string     `json:"name"db:"name"`
 	Source      string     `json:"source"db:"source"`
 	Description string     `json:"description"db:"description"`
 	CreatedAt   *time.Time `json:"created_at"db:"created_at"`
@@ -39,6 +40,7 @@ func (a Archive) Schema() string {
     CREATE TABLE IF NOT EXISTS archives (
       id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
       token VARCHAR(16) NOT NULL,
+      name VARCHAR(255),
       description text NOT NULL, -- Let everybody know how to use this
       source LONGTEXT NOT NULL, -- the JSON contents of the HAR
       created_at DATETIME NOT NULL

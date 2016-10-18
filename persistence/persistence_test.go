@@ -40,7 +40,7 @@ func TestListArchives(t *testing.T) {
 	}
 
 	// Store it in the db
-	archive, err := db.Create(MakeArchive(har))
+	archive, err := db.Create(MakeArchive("name", "any description", har))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +49,12 @@ func TestListArchives(t *testing.T) {
 	}
 	if archive.Token == "" {
 		t.Error("Expected archive.Token to not be blank")
+	}
+	if archive.Name != "name" {
+		t.Errorf("Expected archive.Name to be \"name\", got: %s", archive.Name)
+	}
+	if archive.Description != "description" {
+		t.Errorf("Expected archive.Description to be \"description\", got: %s", archive.Name)
 	}
 	if parser.UnquoteJSON(archive.Source) != fixtureSource {
 		t.Errorf("Unexpected archive.Source length: %d, original: %d", len(archive.Source), len(fixtureSource))

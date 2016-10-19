@@ -20,14 +20,14 @@ const inputGroup = (inputType, fieldName, refBinding) => {
     { className: 'inputGroup form-group' },
     React.createElement('label',
       {
-        htmlFor: 'archive.' + fieldName,
+        htmlFor: fieldName,
         className: ''
       },
       fieldName
     ),
     React.createElement(inputType, {
       ref: refBinding,
-      name: 'archive.' + fieldName,
+      name: fieldName,
       className: 'form-control'
     })
   )
@@ -89,13 +89,17 @@ const Archive = ({ archive, remove }) => {
 
 const ArchiveList = ({ archives, remove }) => {
   // Map through the archives
-  const archiveNode = archives.map(archive => {
+  const archiveNodes = archives.map(archive => {
     return React.createElement(Archive, { key: archive.token, archive: archive, name: archive.name, remove: remove });
   });
   return React.createElement(
-    'div',
+    'fieldset',
     null,
-    archiveNode
+    React.createElement('legend',
+      null,
+      "Archives"
+    ),
+    archiveNodes
   );
 };
 
@@ -152,7 +156,7 @@ class TrafficApp extends React.Component {
       'div',
       null,
       React.createElement(Title, null),
-      React.createElement(ArchiveForm, null),
+      React.createElement(ArchiveForm, { addArchive: this.addArchive.bind(this) }),
       React.createElement(ArchiveList, {
         archives: this.state.data,
         remove: this.handleRemove.bind(this)

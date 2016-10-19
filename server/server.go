@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
 
 	"github.com/JackDanger/traffic/parser"
 	"github.com/JackDanger/traffic/persistence"
@@ -92,11 +91,6 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("]"))
 }
 
-// Form is the top-level HTTP form param
-type Form struct {
-	Har HarParam `json:"form",schema:"har"`
-}
-
 // HarParam is the archive data nested inside Form
 type HarParam struct {
 	Name        string `json:"name",schema:"name"`
@@ -111,23 +105,27 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 	//   "?key[subkey]=x" -> map[string][]string{"key[subkey]": "x"}
 	// But if you use dot notation like the following then Gorilla's schema can
 	// extract nested objects:
-	//   "?key.subkey=x" -> map[string][]string{"key.subkey": "x"}
+	//   "?key.subkey=x" -> map[string][]string{"key": map[string]string{"subkey": "x"}}
 	err := r.ParseForm()
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
-	form := &Form{}
-	decoder := schema.NewDecoder()
-	// r.PostForm is a map of our POST form values
-	err = decoder.Decode(form, r.PostForm)
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
-	har, err := parser.HarFrom(form.Har.Source)
+	harParam := &HarParam{}
+	err = json.Unmarshal(body, harParam)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	har, err := parser.HarFrom(harParam.Source)
 	if err != nil {
 		fail(err, w)
 		return
@@ -139,7 +137,7 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	archive := persistence.MakeArchive(form.Har.Name, form.Har.Description, har)
+	archive := persistence.MakeArchive(harParam.Name, harParam.Description, har)
 	_, err = db.Create(archive)
 
 	w.Write(archive.AsJSON())

@@ -11,8 +11,9 @@ import (
 // the string value (without quotes) of time.Now().Unix() or to replace GUID1,
 // GUID2 with specific, predefined Guids that are constant across the session.
 type ConstantTransform struct {
-	Search         string
-	Replace        string
+	Type           string `json:"type"`
+	Search         string `json:"search"`
+	Replace        string `json:"replace"`
 	compiledSearch *regexp.Regexp
 }
 

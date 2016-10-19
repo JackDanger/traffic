@@ -137,8 +137,15 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	archive := persistence.MakeArchive(harParam.Name, harParam.Description, har)
-	_, err = db.Create(archive)
+	archive, err := persistence.MakeArchive(harParam.Name, harParam.Description, har)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+	if err = archive.Create(db); err != nil {
+		fail(err, w)
+		return
+	}
 
 	w.Write(archive.AsJSON())
 }

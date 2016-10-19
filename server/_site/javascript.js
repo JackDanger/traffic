@@ -51,10 +51,7 @@ const ArchiveForm = ({ addArchive }) => {
     React.createElement(
       'button',
       { onClick: () => {
-          addArchive(name.value, description.value, source.value);
-          name.value = '';
-          description.value = '';
-          source.value = '';
+          addArchive(name, description, source);
         } },
       'Save HAR as Traffic Archive'
     )
@@ -127,14 +124,17 @@ class TrafficApp extends React.Component {
   addArchive(name, description, source) {
     // Assemble data
     const archive = {
-      name: name,
-      description: description,
-      source: source,
+      name: name.value,
+      description: description.value,
+      source: source.value,
     };
     // Update data
     axios.post(this.apiUrl, archive).then(res => {
       this.state.data.push(res.data);
       this.setState({ data: this.state.data });
+      name.value = ''
+      description.value = ''
+      source.value = ''
     });
   }
 

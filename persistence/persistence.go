@@ -2,8 +2,11 @@ package persistence
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 	"time"
 
 	// The act of importing a database/sql driver modifies database/sql, you
@@ -14,6 +17,7 @@ import (
 
 	"github.com/JackDanger/traffic/model"
 	"github.com/JackDanger/traffic/parser"
+	"github.com/JackDanger/traffic/transforms"
 	"github.com/JackDanger/traffic/util"
 )
 
@@ -73,24 +77,52 @@ func NewDbForEnv(environment string) (*DB, error) {
 }
 
 // MakeArchive prepares a model.Har into an Archive that can be stored.
-func MakeArchive(name, description string, har *model.Har) *Archive {
-	return &Archive{
+func MakeArchive(name, description string, har *model.Har) (*Archive, error) {
+	json, err := parser.HarToJSON(har)
+	archive := &Archive{
 		Name:        name,
 		Description: description,
-		Source:      parser.HarToJSON(har),
+		Source:      json,
 	}
+	return archive, err
+}
+
+// MakeTransformFor takes a transform object (of any of the
+// transform.RequestTransform implementations) and turns it into a serialized
+// object that can be persisted in the database.
+func MakeTransformFor(archiveID int64, transform transforms.RequestTransform) (*Transform, error) {
+	marshaled, err := json.MarshalIndent(transform, "", "  ")
+	return &Transform{
+		ArchiveID:     archiveID,
+		MarshaledJSON: string(marshaled),
+		Type:          strings.Split(reflect.TypeOf(transform).String(), ".")[1],
+	}, err
 }
 
 // Create persists a single Archive and in a very concurrent-unsafe way
 // attempts to prevent multiple insertions.
-func (db *DB) Create(archive *Archive) (*Archive, error) {
-	if archive.CreatedAt != nil {
-		return archive, errors.New("Archive already appears to be persisted")
+func (a *Archive) Create(db *DB) error {
+	if a.CreatedAt != nil {
+		return errors.New("Archive already appears to be persisted")
 	}
 
-	archive.CreatedAt = util.TimePtr(time.Now())
-	err := db.Insert(archive)
-	return archive, err
+	a.CreatedAt = util.TimePtr(time.Now())
+	a.UpdatedAt = util.TimePtr(time.Now())
+	err := db.Insert(a)
+
+	return err
+}
+
+// Create persists a single Transform.
+func (t *Transform) Create(db *DB) error {
+	if t.CreatedAt != nil {
+		return errors.New("Transform already appears to be persisted")
+	}
+
+	t.CreatedAt = util.TimePtr(time.Now())
+	t.UpdatedAt = util.TimePtr(time.Now())
+	err := db.Insert(t)
+	return err
 }
 
 // ListArchives returns all of the har records from the database as model
@@ -105,7 +137,8 @@ func (db *DB) ListArchives() ([]Archive, error) {
 // appropriate Transform objects) for a given Archive id.
 func (db *DB) ListTransformsFor(archiveID int) ([]Transform, error) {
 	var records []Transform
-	err := db.Select(&records, db.Transforms.Select("*"))
+	archiveIDColumn := db.Transforms.C("archive_id")
+	err := db.Select(&records, db.Transforms.Select("*").Where(archiveIDColumn.Eq(archiveID)))
 	return records, err
 }
 

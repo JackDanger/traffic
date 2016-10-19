@@ -28,10 +28,11 @@ import (
 //     "X-Authorization: token-{ABC123}"
 //
 type BodyToHeaderTransform struct {
-	Pattern    string // interpreted as a regular expression
-	HeaderName string // which header to put the matched string into
-	Before     string // What to put into the header value before the match
-	After      string // What to put into the header value after the match
+	Type       string `json:"type"`
+	Pattern    string `json:"pattern"`     // interpreted as a regular expression
+	HeaderName string `json:"header_name"` // which header to put the matched string into
+	Before     string `json:"before"`      // What to put into the header value before the match
+	After      string `json:"after"`       // What to put into the header value after the match
 }
 
 // T is because I don't know how to inherit from a func

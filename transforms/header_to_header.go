@@ -12,6 +12,9 @@ import (
 // extracted and used in all subsequent request headers. Once the pattern is
 // found this Transform replaces itself with a HeaderInjectionTransform that
 // inserts a specific header into all subsequent requests.
+// The reason these are different objects is that the HeaderToHeaderTransform
+// only observes requests and modifies nothing. When it encounters a matching
+// value then it replaces itself with a transform that modifies requests.
 //
 // Example:
 //
@@ -36,11 +39,12 @@ import (
 //     }
 //
 type HeaderToHeaderTransform struct {
-	ResponseKey string // which header to read the value out of. If blank, all headers will be checked for a matching pattern.
-	Pattern     string // interpreted as a regular expression
-	RequestKey  string // which header to put the matched string into
-	Before      string // What to put into the header value before the match
-	After       string // What to put into the header value after the match
+	Type        string `json:"type"`
+	ResponseKey string `json:"response_key"` // which header to read the value out of. If blank, all headers will be checked for a matching pattern.
+	Pattern     string `json:"pattern"`      // interpreted as a regular expression
+	RequestKey  string `json:"request_key"`  // which header to put the matched string into
+	Before      string `json:"before"`       // What to put into the header value before the match
+	After       string `json:"after"`        // What to put into the header value after the match
 }
 
 // T is because I don't know how to inherit from a func

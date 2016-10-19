@@ -22,6 +22,12 @@ func TestMain(m *testing.M) {
 	db.Truncate()
 }
 
+func TestArchiveCreate(t *testing.T) {
+}
+
+func TestTransformCreate(t *testing.T) {
+}
+
 func TestListArchives(t *testing.T) {
 	db, err := NewDb()
 	if err != nil {
@@ -29,6 +35,9 @@ func TestListArchives(t *testing.T) {
 	}
 	// Get a har from a test fixture
 	bytes, err := ioutil.ReadFile(util.Root() + "fixtures/browse-two-github-users.har")
+	// We trim it because we're going to do a byte-for-byte comparison of the
+	// source later on to ensure it can roundtrip to the database without
+	// unexpected modifications
 	fixtureSource := strings.TrimRight(string(bytes), "\n")
 	if err != nil {
 		t.Fatal(err)
@@ -40,8 +49,11 @@ func TestListArchives(t *testing.T) {
 	}
 
 	// Store it in the db
-	archive, err := db.Create(MakeArchive("some name", "any description", har))
+	archive, err := MakeArchive("some name", "any description", har)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := archive.Create(db); err != nil {
 		t.Fatal(err)
 	}
 	if archive == nil {
@@ -60,6 +72,10 @@ func TestListArchives(t *testing.T) {
 	if archive.CreatedAt.Sub(time.Now()) < -time.Second {
 		t.Errorf("Unexpected archive.CreatedAt: %#v, duration: %#v (%#v)", archive.CreatedAt, archive.CreatedAt.Sub(time.Now()), time.Second)
 	}
+	// The updated_at should be about the same as created_at
+	if archive.UpdatedAt.Sub(time.Now()) < -time.Second {
+		t.Errorf("Unexpected archive.UpdatedAt: %#v, duration: %#v (%#v)", archive.UpdatedAt, archive.UpdatedAt.Sub(time.Now()), time.Second)
+	}
 
 	// Then retrieve everything in there
 	archives, err := db.ListArchives()
@@ -67,7 +83,7 @@ func TestListArchives(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(archives) < 1 {
-		t.Error("Did not retrieve any records")
+		t.Error("Did not retrieve any archives")
 	}
 	retrieved := archives[0]
 
@@ -77,4 +93,8 @@ func TestListArchives(t *testing.T) {
 	if retrieved.CreatedAt != archive.CreatedAt {
 		t.Errorf("Unexpected CreatedAt retrieved: %s, expected: %s", retrieved.CreatedAt, archive.CreatedAt)
 	}
+}
+
+func TestListTransformsFor(t *testing.T) {
+	// TODO
 }

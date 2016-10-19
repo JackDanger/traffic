@@ -69,8 +69,9 @@ func (t responseProcessor) T(r *model.Response) RequestTransform {
 
 // HeaderInjectionTransform is used to add a specific header to all requests.
 type HeaderInjectionTransform struct {
-	Key   string
-	Value string
+	Type  string `json:"type"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 var _ RequestTransform = HeaderInjectionTransform{}

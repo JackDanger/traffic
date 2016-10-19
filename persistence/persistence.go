@@ -22,7 +22,8 @@ import (
 type DB struct {
 	*squalor.DB
 
-	Archives *squalor.Model
+	Archives   *squalor.Model
+	Transforms *squalor.Model
 }
 
 // NewDb returns an instance of a single connection to the database. It's the
@@ -55,7 +56,9 @@ func NewDbForEnv(environment string) (*DB, error) {
 
 	// Connect specific tables to specific struct types
 	archives, err := db.BindModel("archives", Archive{})
+	transforms, err := db.BindModel("transforms", Transform{})
 	db.Archives = archives
+	db.Transforms = transforms
 	if err == nil {
 		return db, nil
 	}
@@ -72,7 +75,6 @@ func NewDbForEnv(environment string) (*DB, error) {
 // MakeArchive prepares a model.Har into an Archive that can be stored.
 func MakeArchive(name, description string, har *model.Har) *Archive {
 	return &Archive{
-		Token:       util.UUID(),
 		Name:        name,
 		Description: description,
 		Source:      parser.HarToJSON(har),
@@ -87,7 +89,6 @@ func (db *DB) Create(archive *Archive) (*Archive, error) {
 	}
 
 	archive.CreatedAt = util.TimePtr(time.Now())
-	fmt.Printf("creating archive %s\n", archive.Token)
 	err := db.Insert(archive)
 	return archive, err
 }
@@ -100,12 +101,22 @@ func (db *DB) ListArchives() ([]Archive, error) {
 	return records, err
 }
 
+// ListTransformsFor returns all of the transform records (instantiated as
+// appropriate Transform objects) for a given Archive id.
+func (db *DB) ListTransformsFor(archiveID int) ([]Transform, error) {
+	var records []Transform
+	err := db.Select(&records, db.Transforms.Select("*"))
+	return records, err
+}
+
 // Migrate will create the database if necessary and apply necessary
 // migrations.
 func (db *DB) Migrate(databaseName string) error {
 	// Create the tables if necessary
 	err := MigrateSQL(db.DB.DB, Archive{}.Schema())
-
+	if err == nil {
+		err = MigrateSQL(db.DB.DB, Transform{}.Schema())
+	}
 	switch err.(type) {
 	case *mysql.MySQLError:
 		// "database does not exist" error
@@ -144,4 +155,5 @@ func MigrateSQL(conn *sql.DB, query string) error {
 // very slow O(1) and Delete is a more rapid O(n) for a very small n.
 func (db *DB) Truncate() {
 	db.Archives.Delete()
+	db.Transforms.Delete()
 }

@@ -68,10 +68,9 @@ const Archive = ({ archive, remove }) => {
     {
       name: archive.name,
       remove: remove,
-      token: archive.token,
       className: "archive",
       onClick: () => {
-        console.log(archive.token);
+        console.log(archive.id);
       }
     },
     React.createElement(
@@ -90,7 +89,7 @@ const Archive = ({ archive, remove }) => {
 const ArchiveList = ({ archives, remove }) => {
   // Map through the archives
   const archiveNodes = archives.map(archive => {
-    return React.createElement(Archive, { key: archive.token, archive: archive, name: archive.name, remove: remove });
+    return React.createElement(Archive, { key: archive.id, archive: archive, name: archive.name, remove: remove });
   });
   return React.createElement(
     'fieldset',
@@ -140,13 +139,13 @@ class TrafficApp extends React.Component {
   }
 
   // Handle remove
-  handleRemove(token) {
+  handleRemove(id) {
     // Filter all archives except the one to be removed
     const remainder = this.state.data.filter(archive => {
-      if (archive.token !== token) return archive;
+      if (archive.id !== id) return archive;
     });
     // Update state with filter
-    axios.delete(this.apiUrl + '/' + token).then(res => {
+    axios.delete(this.apiUrl + '/' + id).then(res => {
       this.setState({ data: remainder });
     });
   }

@@ -40,21 +40,18 @@ func TestListArchives(t *testing.T) {
 	}
 
 	// Store it in the db
-	archive, err := db.Create(MakeArchive("name", "any description", har))
+	archive, err := db.Create(MakeArchive("some name", "any description", har))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if archive == nil {
 		t.Fatal("Archive not expected to be nil")
 	}
-	if archive.Token == "" {
-		t.Error("Expected archive.Token to not be blank")
+	if archive.Name != "some name" {
+		t.Errorf("Expected archive.Name to be \"some name\", got: %s", archive.Name)
 	}
-	if archive.Name != "name" {
-		t.Errorf("Expected archive.Name to be \"name\", got: %s", archive.Name)
-	}
-	if archive.Description != "description" {
-		t.Errorf("Expected archive.Description to be \"description\", got: %s", archive.Name)
+	if archive.Description != "any description" {
+		t.Errorf("Expected archive.Description to be \"any description\", got: %s", archive.Description)
 	}
 	if parser.UnquoteJSON(archive.Source) != fixtureSource {
 		t.Errorf("Unexpected archive.Source length: %d, original: %d", len(archive.Source), len(fixtureSource))
@@ -74,9 +71,6 @@ func TestListArchives(t *testing.T) {
 	}
 	retrieved := archives[0]
 
-	if retrieved.Token != archive.Token {
-		t.Errorf("Unexpected Token retrieved: %s, expected: %s", retrieved.Token, archive.Token)
-	}
 	if retrieved.Source != archive.Source {
 		t.Errorf("Unexpected Source retrieved: %d / %d", len(retrieved.Source), len(archive.Source))
 	}

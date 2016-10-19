@@ -25,8 +25,8 @@ func NewServer(port string) *http.Server {
 	r.HandleFunc("/javascript.js", Javascript).Methods("GET")
 	r.HandleFunc("/archives", ListHars).Methods("GET")
 	r.HandleFunc("/archives", CreateHar).Methods("POST")
-	r.HandleFunc("/archives/{token}", UpdateHar).Methods("PUT")
-	r.HandleFunc("/archives/{token}", DeleteHar).Methods("DELETE")
+	r.HandleFunc("/archives/{id}", UpdateHar).Methods("PUT")
+	r.HandleFunc("/archives/{id}", DeleteHar).Methods("DELETE")
 	r.HandleFunc("/start", StartHar).Methods("POST")
 
 	handler := newLoggedMux()
@@ -146,7 +146,7 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 // UpdateHar stores a new HAR
 func UpdateHar(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if params["token"] == "" {
+	if params["id"] == "" {
 		w.WriteHeader(404)
 		w.Write([]byte(`{"success": "nope"}`))
 	}
@@ -161,7 +161,7 @@ func DeleteHar(w http.ResponseWriter, r *http.Request) {
 }
 
 // StartHar begins 1 or more runners of a specific HAR file identified by name
-// (for now, eventually it'll be by token from the db)
+// (for now, eventually it'll be by id from the db)
 func StartHar(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// TODO: read from the db

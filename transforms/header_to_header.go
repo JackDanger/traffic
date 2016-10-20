@@ -1,7 +1,6 @@
 package transforms
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/JackDanger/traffic/model"
@@ -39,7 +38,6 @@ import (
 //     }
 //
 type HeaderToHeaderTransform struct {
-	Type        string `json:"type"`
 	ResponseKey string `json:"response_key"` // which header to read the value out of. If blank, all headers will be checked for a matching pattern.
 	Pattern     string `json:"pattern"`      // interpreted as a regular expression
 	RequestKey  string `json:"request_key"`  // which header to put the matched string into
@@ -77,7 +75,6 @@ func (t HeaderToHeaderTransform) maybeRelace(header *model.SingleItemMap) *Heade
 
 	// If t.ResponseKey is nil then we try to match Pattern against any header header
 	if t.ResponseKey != "" && *header.Key != t.ResponseKey {
-		fmt.Println("transforms/header_to_header.go:76 ", t.ResponseKey, "didn't match ", *header.Key)
 		return nil
 	}
 

@@ -2,12 +2,7 @@ package persistence
 
 import (
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"reflect"
-	"strings"
-	"time"
 
 	// The act of importing a database/sql driver modifies database/sql, you
 	// don't need to reference it unless you need access to things like
@@ -15,9 +10,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/square/squalor"
 
-	"github.com/JackDanger/traffic/model"
-	"github.com/JackDanger/traffic/parser"
-	"github.com/JackDanger/traffic/transforms"
 	"github.com/JackDanger/traffic/util"
 )
 
@@ -29,6 +21,17 @@ type DB struct {
 	Archives   *squalor.Model
 	Transforms *squalor.Model
 }
+
+// Model is what we'll call any type that represents the individual records in
+// the database.
+type Model interface {
+	AsJSON() []byte
+	Create(*DB) error
+	Schema() string
+}
+
+var _ Model = &Archive{}
+var _ Model = &Transform{}
 
 // NewDb returns an instance of a single connection to the database. It's the
 // handle we use for performing every database operation.
@@ -76,72 +79,6 @@ func NewDbForEnv(environment string) (*DB, error) {
 	return nil, err
 }
 
-// MakeArchive prepares a model.Har into an Archive that can be stored.
-func MakeArchive(name, description string, har *model.Har) (*Archive, error) {
-	json, err := parser.HarToJSON(har)
-	archive := &Archive{
-		Name:        name,
-		Description: description,
-		Source:      json,
-	}
-	return archive, err
-}
-
-// MakeTransformFor takes a transform object (of any of the
-// transform.RequestTransform implementations) and turns it into a serialized
-// object that can be persisted in the database.
-func MakeTransformFor(archiveID int64, transform transforms.RequestTransform) (*Transform, error) {
-	marshaled, err := json.MarshalIndent(transform, "", "  ")
-	return &Transform{
-		ArchiveID:     archiveID,
-		MarshaledJSON: string(marshaled),
-		Type:          strings.Split(reflect.TypeOf(transform).String(), ".")[1],
-	}, err
-}
-
-// Create persists a single Archive and in a very concurrent-unsafe way
-// attempts to prevent multiple insertions.
-func (a *Archive) Create(db *DB) error {
-	if a.CreatedAt != nil {
-		return errors.New("Archive already appears to be persisted")
-	}
-
-	a.CreatedAt = util.TimePtr(time.Now())
-	a.UpdatedAt = util.TimePtr(time.Now())
-	err := db.Insert(a)
-
-	return err
-}
-
-// Create persists a single Transform.
-func (t *Transform) Create(db *DB) error {
-	if t.CreatedAt != nil {
-		return errors.New("Transform already appears to be persisted")
-	}
-
-	t.CreatedAt = util.TimePtr(time.Now())
-	t.UpdatedAt = util.TimePtr(time.Now())
-	err := db.Insert(t)
-	return err
-}
-
-// ListArchives returns all of the har records from the database as model
-// instances
-func (db *DB) ListArchives() ([]Archive, error) {
-	var records []Archive
-	err := db.Select(&records, db.Archives.Select("*"))
-	return records, err
-}
-
-// ListTransformsFor returns all of the transform records (instantiated as
-// appropriate Transform objects) for a given Archive id.
-func (db *DB) ListTransformsFor(archiveID int) ([]Transform, error) {
-	var records []Transform
-	archiveIDColumn := db.Transforms.C("archive_id")
-	err := db.Select(&records, db.Transforms.Select("*").Where(archiveIDColumn.Eq(archiveID)))
-	return records, err
-}
-
 // Migrate will create the database if necessary and apply necessary
 // migrations.
 func (db *DB) Migrate(databaseName string) error {
@@ -187,6 +124,10 @@ func MigrateSQL(conn *sql.DB, query string) error {
 // table" is faster than "TRUNCATE table" in MySQL as TRUNCATE operates at a
 // very slow O(1) and Delete is a more rapid O(n) for a very small n.
 func (db *DB) Truncate() {
-	db.Archives.Delete()
-	db.Transforms.Delete()
+	for _, table := range []string{"archives", "transforms"} {
+		_, err := db.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		if err != nil {
+			panic(err)
+		}
+	}
 }

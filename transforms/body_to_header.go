@@ -28,7 +28,6 @@ import (
 //     "X-Authorization: token-{ABC123}"
 //
 type BodyToHeaderTransform struct {
-	Type       string `json:"type"`
 	Pattern    string `json:"pattern"`     // interpreted as a regular expression
 	HeaderName string `json:"header_name"` // which header to put the matched string into
 	Before     string `json:"before"`      // What to put into the header value before the match

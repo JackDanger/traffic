@@ -33,7 +33,9 @@ type Entry struct {
 	Pageref         string    `json:"pageref,omitempty"`
 }
 
-// Request represents a single HTTP request
+// Request represents a single HTTP request. This is _not_ an http.Request,
+// it's a representation of the "request: {}" part of a HAR document which can
+// be turned into an http.Request and replayed.
 type Request struct {
 	Method      string          `json:"method"`
 	URL         string          `json:"url"`

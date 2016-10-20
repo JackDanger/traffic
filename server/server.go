@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gorilla/mux"
 
@@ -13,10 +15,14 @@ import (
 	"github.com/JackDanger/traffic/util"
 )
 
+// Store a single database connection instance for the whole server. Is this a
+// terrible idea?
+var db *persistence.DB
+
 // NewServer returns an instance of http.Server ready to listen on the given
 // port. Calling ListenAndServe on it is a blocking call:
 //   server.NewServer("8080").ListenAndServe()
-func NewServer(port string) *http.Server {
+func NewServer(port string) (*http.Server, error) {
 
 	r := mux.NewRouter()
 
@@ -24,17 +30,25 @@ func NewServer(port string) *http.Server {
 	r.HandleFunc("/javascript.js", Javascript).Methods("GET")
 	r.HandleFunc("/archives", ListHars).Methods("GET")
 	r.HandleFunc("/archives", CreateHar).Methods("POST")
-	r.HandleFunc("/archives/{id}", UpdateHar).Methods("PUT")
-	r.HandleFunc("/archives/{id}", DeleteHar).Methods("DELETE")
+	r.HandleFunc("/archives/{id}", UpdateArchive).Methods("PUT")
+	r.HandleFunc("/archives/{id}", DeleteArchive).Methods("DELETE")
 	r.HandleFunc("/start", StartHar).Methods("POST")
 
 	handler := newLoggedMux()
 	handler.Handle("/", r)
 
+	var err error
+	// Set the global `db` var WTF please open a pull request to fix how I'm
+	// doing this.
+	db, err = persistence.NewDb()
+	if err != nil {
+		return nil, err
+	}
+
 	return &http.Server{
 		Addr:    "127.0.0.1:" + port,
 		Handler: handler,
-	}
+	}, nil
 }
 
 // Index shows the home page
@@ -66,11 +80,6 @@ func Javascript(w http.ResponseWriter, r *http.Request) {
 // ListHars retrieves all HAR files
 func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	db, err := persistence.NewDb()
-	if err != nil {
-		fail(err, w)
-		return
-	}
 
 	archives, err := db.ListArchives()
 	if err != nil {
@@ -104,7 +113,6 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := persistence.NewDb()
 	if err != nil {
 		fail(err, w)
 		return
@@ -124,8 +132,8 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 	w.Write(archive.AsJSON())
 }
 
-// UpdateHar stores a new HAR
-func UpdateHar(w http.ResponseWriter, r *http.Request) {
+// UpdateArchive modifies an existing archive
+func UpdateArchive(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	if params["id"] == "" {
 		w.WriteHeader(404)
@@ -135,10 +143,28 @@ func UpdateHar(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"success": "sure"}`))
 }
 
-// DeleteHar stores a new HAR
-func DeleteHar(w http.ResponseWriter, r *http.Request) {
+// DeleteArchive removes an archive from the db
+func DeleteArchive(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	if params["id"] == "" {
+		w.WriteHeader(404)
+		w.Write([]byte(`{"success": "nope"}`))
+	}
+	// parse this as base10 into an int64
+	id, err := strconv.ParseInt(params["id"], 10, 64)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	rowsDeleted, err := db.Delete(&persistence.Archive{ID: id})
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
 	w.WriteHeader(200)
-	w.Write([]byte(`{"success": "sure"}`))
+	w.Write([]byte(fmt.Sprintf(`{"success": "sure", "deleted": %d"}`, rowsDeleted)))
 }
 
 // StartHar begins 1 or more runners of a specific HAR file identified by name

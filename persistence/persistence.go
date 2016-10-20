@@ -44,30 +44,22 @@ func NewDb() (*DB, error) {
 func NewDbForEnv(environment string) (*DB, error) {
 	databaseName := fmt.Sprintf("traffic_%s", environment)
 
-	// Connect to the 'mysq' MySQL database
-	conn, err := sql.Open("mysql", fmt.Sprint("root@/mysql?parseTime=true"))
+	// Connect to MySQL
+	conn, err := sql.Open("mysql", fmt.Sprintf("root@/%s?parseTime=true", databaseName))
 	if err != nil {
 		return nil, err
 	}
+
 	// Wrap the MySQL connection in the Squalor ORM and wrap that in our own DB
 	// type
 	db := &DB{DB: squalor.NewDB(conn)}
 
-	// If the database or tables do not exist create them
 	// TODO: when performance of this method becomes an issue move this to an
 	// external manual step
 	err = db.Migrate(databaseName)
 	if err != nil {
-		fmt.Println("persistence/persistence.go:61 ", err)
+		fmt.Println("persistence/persistence.go:49 ", err)
 	}
-
-	// Now connect to the proper database. Yes, this automatic db switch is a
-	// hack. Yes, it also makes early development and testing far faster.
-	conn, err = sql.Open("mysql", fmt.Sprintf("root@/%s?parseTime=true", databaseName))
-	if err != nil {
-		return nil, err
-	}
-	db.DB = squalor.NewDB(conn)
 
 	// Connect specific tables to specific struct types
 	archives, err := db.BindModel("archives", Archive{})

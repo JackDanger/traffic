@@ -37,6 +37,17 @@ func MakeArchive(name, description string, har *model.Har) (*Archive, error) {
 	return archive, err
 }
 
+// FromJSON accepts the raw JSON from the frontend and Unmarshales an Archive
+// instance from it. The `Source` field will still be Marshaled JSON because
+// it's doubly-encoded over the wire.
+func (a Archive) FromJSON(b []byte) (*Archive, error) {
+	archive := &Archive{}
+	if err := json.Unmarshal(b, archive); err != nil {
+		return nil, err
+	}
+	return archive, nil
+}
+
 // Create persists a single Archive and in a very concurrent-unsafe way
 // attempts to prevent multiple insertions.
 func (a *Archive) Create(db *DB) error {

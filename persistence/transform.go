@@ -72,6 +72,21 @@ func (t *Transform) Model() (transforms.RequestTransform, error) {
 	return instance, nil
 }
 
+// FromJSON accepts the raw JSON from the frontend and Unmarshales a Transform
+// instance from it. The `MarshaledJSON` field will still be JSON because it's
+// doubly-encoded over the wire.
+// At this point we don't even attempt to understand what type of transform
+// we've created. There's a `Type` field holding onto a string and we'll find
+// out if that's a valid type name (and if the MarshaledJSON can be Unmarshaled
+// into an instance of that type) in Model()
+func (t Transform) FromJSON(b []byte) (*Transform, error) {
+	transform := &Transform{}
+	if err := json.Unmarshal(b, transform); err != nil {
+		return nil, err
+	}
+	return transform, nil
+}
+
 // Create persists a single Transform.
 func (t *Transform) Create(db *DB) error {
 	if t.CreatedAt != nil {

@@ -126,7 +126,9 @@ class TrafficApp extends React.Component {
     const archive = {
       name: name.value,
       description: description.value,
-      source: source.value,
+      // The HAR source is stored as raw JSON in the database so we
+      // doubly-encode it over HTTP
+      source: JSON.stringify(source.value),
     };
     // Update data
     axios.post(this.apiUrl, archive).then(res => {

@@ -1,4 +1,6 @@
 language: go
 services:
   - mysql
+before_install:
+  - mysql -e 'create database traffic_test'
 

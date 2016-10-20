@@ -179,17 +179,14 @@ func StartHar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content := []parser.HarWrapper{
-		parser.HarWrapper{Har: har},
-	}
-	contentJSON, err := json.Marshal(content)
+	contentJSON, err := parser.HarToJSON(har)
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
 	w.WriteHeader(200)
-	w.Write(contentJSON)
+	w.Write([]byte(contentJSON))
 }
 
 // LoggedMux is a wrapper around http.ServeMux that logs all requests to STDERR

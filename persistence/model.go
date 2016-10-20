@@ -36,9 +36,7 @@ type Transform struct {
 
 // Model deserializes a Har instance from the database source string
 func (a *Archive) Model() (*model.Har, error) {
-	wrapper := &parser.HarWrapper{}
-	err := json.Unmarshal([]byte(a.Source), wrapper)
-	return wrapper.Har, err
+	return parser.HarFrom(a.Source)
 }
 
 // Model deserializes a RequestTransform instance from the database

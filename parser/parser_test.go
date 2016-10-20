@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/JackDanger/traffic/model"
 )
 
 func TestParse(t *testing.T) {
@@ -29,7 +31,7 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wrapper := &HarWrapper{Har: instance}
+	wrapper := &model.HarWrapper{Har: instance}
 	roundtrip, err := json.MarshalIndent(wrapper, "", "  ")
 	if err != nil {
 		t.Fatal(err)

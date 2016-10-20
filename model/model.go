@@ -1,8 +1,17 @@
+// The model package encapsulates modeling a HAR - an "HTTP ARchive"
+// This is a highly-structured JSON file exportable by Chrome and other
+// Webkit-based browsers.
 package model
 
 import (
 	"encoding/json"
 )
+
+// HarWrapper exists because the HAR file contains a top-level key
+// called "log" which most of the time we'll pretend isn't there.
+type HarWrapper struct {
+	Har *Har `json:"log"`
+}
 
 // Har represents the top-level, single  `log` key of the .har file
 type Har struct {

@@ -51,7 +51,7 @@ func (t *Transform) Model() (transforms.RequestTransform, error) {
 		instance = &transforms.HeaderToHeaderTransform{}
 	case "header_injection":
 		instance = &transforms.HeaderInjectionTransform{}
-	case "constant_transform":
+	case "constant":
 		instance = &transforms.ConstantTransform{}
 	}
 	err := json.Unmarshal([]byte(t.MarshaledJSON), instance)

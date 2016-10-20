@@ -43,7 +43,6 @@ func (t *ConstantTransform) T(r *model.Request) ResponseTransform {
 	// Don't do anything with the response and reuse this same transformation on
 	// the next request.
 	return passthrough{requestTransform: t}
-
 }
 
 // Mutate a string to replace any instances of t.Search with t.Replace. Handles

@@ -28,8 +28,8 @@ func NewServer(port string) (*http.Server, error) {
 
 	r.HandleFunc("/", Index).Methods("GET")
 	r.HandleFunc("/javascript.js", Javascript).Methods("GET")
-	r.HandleFunc("/archives", ListHars).Methods("GET")
-	r.HandleFunc("/archives", CreateHar).Methods("POST")
+	r.HandleFunc("/archives", ListArchives).Methods("GET")
+	r.HandleFunc("/archives", CreateArchive).Methods("POST")
 	r.HandleFunc("/archives/{id}", UpdateArchive).Methods("PUT")
 	r.HandleFunc("/archives/{id}", DeleteArchive).Methods("DELETE")
 	r.HandleFunc("/start", StartHar).Methods("POST")
@@ -64,11 +64,10 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	w.Write(content)
 }
 
-// Javascript turns JSX into JS and renders is
+// Javascript merely renders our one JS file
 func Javascript(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
 	content, err := webFile("javascript.js")
-
 	if err != nil {
 		fail(err, w)
 		return
@@ -77,8 +76,8 @@ func Javascript(w http.ResponseWriter, r *http.Request) {
 	w.Write(content)
 }
 
-// ListHars retrieves all HAR files
-func ListHars(w http.ResponseWriter, r *http.Request) {
+// ListArchives retrieves all HAR files
+func ListArchives(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	archives, err := db.ListArchives()
@@ -99,20 +98,9 @@ func ListHars(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("]"))
 }
 
-// CreateHar stores a new HAR
-func CreateHar(w http.ResponseWriter, r *http.Request) {
-	// Extracts form values into a url.Values (map[string][]string) instance.
-	// Note that the popular nesting convention doesn't work natively in Go:
-	//   "?key[subkey]=x" -> map[string][]string{"key[subkey]": "x"}
-	// But if you use dot notation like the following then Gorilla's schema can
-	// extract nested objects:
-	//   "?key.subkey=x" -> map[string][]string{"key": map[string]string{"subkey": "x"}}
+// CreateArchive stores a new HAR
+func CreateArchive(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fail(err, w)
-		return
-	}
-
 	if err != nil {
 		fail(err, w)
 		return
@@ -128,6 +116,12 @@ func CreateHar(w http.ResponseWriter, r *http.Request) {
 		fail(err, w)
 		return
 	}
+	// Reload it from the database to ensure the frontend always gets datastore-casted values.
+	archive, err = persistence.Archive{}.Get(db, archive.ID)
+	if err != nil {
+		fail(err, w)
+		return
+	}
 
 	w.Write(archive.AsJSON())
 }
@@ -139,8 +133,30 @@ func UpdateArchive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		w.Write([]byte(`{"success": "nope"}`))
 	}
+	// parse this as base10 into an int64
+	id, err := strconv.ParseInt(params["id"], 10, 64)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+	archive, err := persistence.Archive{}.FromJSON(body)
+
+	archive.ID = id
+
+	rowsChanged, err := db.Update(&archive)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
 	w.WriteHeader(200)
-	w.Write([]byte(`{"success": "sure"}`))
+	w.Write([]byte(fmt.Sprintf(`{"success": "sure", "updated": %d"}`, rowsChanged)))
 }
 
 // DeleteArchive removes an archive from the db
@@ -157,14 +173,14 @@ func DeleteArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rowsDeleted, err := db.Delete(&persistence.Archive{ID: id})
+	rowsChanged, err := db.Delete(&persistence.Archive{ID: id})
 	if err != nil {
 		fail(err, w)
 		return
 	}
 
 	w.WriteHeader(200)
-	w.Write([]byte(fmt.Sprintf(`{"success": "sure", "deleted": %d"}`, rowsDeleted)))
+	w.Write([]byte(fmt.Sprintf(`{"success": "sure", "deleted": %d"}`, rowsChanged)))
 }
 
 // StartHar begins 1 or more runners of a specific HAR file identified by name

@@ -48,18 +48,29 @@ func (a Archive) FromJSON(b []byte) (*Archive, error) {
 	return archive, nil
 }
 
+// Get retrieves a single record by primary key
+func (a Archive) Get(db *DB, id int64) (*Archive, error) {
+	archive := &Archive{}
+	archive.ID = id
+	err := db.Get(archive, db.Archives.C("id"))
+	return archive, err
+}
+
 // Create persists a single Archive and in a very concurrent-unsafe way
 // attempts to prevent multiple insertions.
 func (a *Archive) Create(db *DB) error {
 	if a.CreatedAt != nil {
 		return errors.New("Archive already appears to be persisted")
 	}
+	if db == nil {
+		panic("Unexpected nil database connection")
+	}
 
 	now := util.TimePtr(time.Now())
 	a.CreatedAt = now
 	a.UpdatedAt = now
-	err := db.Insert(a)
 
+	err := db.Insert(a)
 	return err
 }
 

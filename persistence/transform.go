@@ -87,6 +87,14 @@ func (t Transform) FromJSON(b []byte) (*Transform, error) {
 	return transform, nil
 }
 
+// Get retrieves a single record by primary key
+func (t Transform) Get(db *DB, id int64) (*Transform, error) {
+	transform := &Transform{}
+	transform.ID = id
+	err := db.Get(transform, db.Transforms.C("id"))
+	return transform, err
+}
+
 // Create persists a single Transform.
 func (t *Transform) Create(db *DB) error {
 	if t.CreatedAt != nil {

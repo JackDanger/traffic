@@ -43,7 +43,7 @@ const transformSelect = () => {
       React.createElement('option',
         null,
         "HeaderInjectionTransform"
-      ),
+      )
     )
   )
 }
@@ -140,6 +140,17 @@ const Archive = ({ archive, remove }) => {
         React.createElement("a",
           null,
           "edit"
+        )
+      ),
+      React.createElement("div",
+        { className: "delete" },
+        React.createElement("a",
+          {
+            onClick: function onClick() {
+              remove(archive.id)
+            }
+          },
+          "delete"
         )
       )
     ),

@@ -14,6 +14,39 @@ const Title = () => {
     )
 }
 
+const transformSelect = () => {
+  return React.createElement(
+    'div',
+    { className: 'inputGroup form-group' },
+    React.createElement('label',
+      {
+        htmlFor: fieldName,
+        className: ''
+      },
+      "Type of Transform:"
+    ),
+    React.createElement('select', {
+      name: 'type'
+    },
+      React.createElement('option',
+        null,
+        "BodyToHeaderTransform"
+      ),
+      React.createElement('option',
+        null,
+        "ConstantTransform"
+      ),
+      React.createElement('option',
+        null,
+        "HeaderToHeaderTransform"
+      ),
+      React.createElement('option',
+        null,
+        "HeaderInjectionTransform"
+      ),
+    )
+  )
+}
 const inputGroup = (inputType, fieldName, refBinding) => {
   return React.createElement(
     'div',
@@ -58,6 +91,32 @@ const ArchiveForm = ({ addArchive }) => {
   );
 };
 
+
+const TransformForm = ({ archiveId, addTransform }) => {
+  // Input tracker
+  let type;
+
+  return React.createElement(
+    'fieldset',
+    { className: 'transformForm' },
+    inputGroup('select', 'type', node => { type = node }),
+    inputGroup('input', 'description', node => { type = node }),
+    inputGroup('textarea', 'source', node => { type = node }),
+    React.createElement(
+      'legend',
+      null,
+      'Add a new archive'
+    ),
+    React.createElement(
+      'button',
+      { onClick: () => {
+          addArchive(name, description, source);
+        } },
+      'Save HAR as Traffic Archive'
+    )
+  );
+};
+
 const Archive = ({ archive, remove }) => {
   // Each Archive
   return React.createElement(
@@ -70,13 +129,21 @@ const Archive = ({ archive, remove }) => {
         console.log(archive.id);
       }
     },
-    React.createElement(
-      "div",
-      { className: "name" },
-      archive.name
+    React.createElement("div",
+      null,
+      React.createElement("div",
+        { className: "name" },
+        archive.name
+      ),
+      React.createElement("div",
+        { className: "edit" },
+        React.createElement("a",
+          null,
+          "edit"
+        )
+      )
     ),
-    React.createElement(
-      "div",
+    React.createElement("div",
       { className: "description" },
       archive.description
     )

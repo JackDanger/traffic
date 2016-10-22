@@ -126,6 +126,33 @@ func CreateArchive(w http.ResponseWriter, r *http.Request) {
 	w.Write(archive.AsJSON())
 }
 
+// CreateTransform stores a new transform for a specific archive
+func CreateTransform(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	transform, err := persistence.Transform{}.FromJSON(body)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+	if err = transform.Create(db); err != nil {
+		fail(err, w)
+		return
+	}
+	// Reload it from the database to ensure the frontend always gets datastore-casted values.
+	transform, err = persistence.Transform{}.Get(db, transform.ID)
+	if err != nil {
+		fail(err, w)
+		return
+	}
+
+	w.Write(transform.AsJSON())
+}
+
 // UpdateArchive modifies an existing archive
 func UpdateArchive(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)

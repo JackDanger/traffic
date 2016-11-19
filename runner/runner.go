@@ -156,13 +156,14 @@ func (r *Runner) Play(entry *model.Entry) error {
 		response, err = r.Executor.Head(transformedRequest)
 	case "PATCH":
 		response, err = r.Executor.Patch(transformedRequest)
-	}
-
-	r.updateTransformsFromResponse(response)
-
-	if response == nil {
+	default:
 		return errors.New("No HTTP verb matched")
 	}
+
+	if response != nil {
+		r.updateTransformsFromResponse(response)
+	}
+
 	return err
 }
 

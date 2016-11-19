@@ -45,7 +45,7 @@ func NewDbForEnv(environment string) (*DB, error) {
 	databaseName := fmt.Sprintf("traffic_%s", environment)
 
 	// Connect to MySQL
-	conn, err := sql.Open("mysql", fmt.Sprintf("root@/%s?parseTime=true", databaseName))
+	conn, err := sql.Open("mysql", "root@/mysql?parseTime=true")
 	if err != nil {
 		return nil, err
 	}

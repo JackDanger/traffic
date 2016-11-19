@@ -13,12 +13,12 @@ import (
 // Archive represents the database format of a single named model.Har.
 // It's able to serialize and deserialize the source.
 type Archive struct {
-	ID          int64      `json:"id"db:"id"`
-	Name        string     `json:"name"db:"name"`
-	Source      string     `json:"source"db:"source"`
-	Description string     `json:"description"db:"description"`
-	CreatedAt   *time.Time `json:"created_at"db:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at"db:"updated_at"`
+	ID          int64      `json:"id" db:"id"`
+	Name        string     `json:"name" db:"name"`
+	Source      string     `json:"source" db:"source"`
+	Description string     `json:"description" db:"description"`
+	CreatedAt   *time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Model deserializes a Har instance from the database source string
@@ -72,6 +72,16 @@ func (a *Archive) Create(db *DB) error {
 
 	err := db.Insert(a)
 	return err
+}
+
+// GetArchive finds just one har record by id from the database
+func (db *DB) GetArchive(id int) (*Archive, error) {
+	var records []Archive
+	err := db.Select(&records, db.Archives.Select("*").Where(db.Archives.C("id").Eq(id)))
+	if len(records) > 0 {
+		return &records[0], err
+	}
+	return nil, err
 }
 
 // ListArchives returns all of the har records from the database as model

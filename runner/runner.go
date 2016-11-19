@@ -28,6 +28,7 @@ type Runner struct {
 	m                      sync.Mutex
 	Har                    *model.Har
 	Running                bool
+	Velocity               float64
 	StartTime              time.Time
 	operationChannel       chan Operation
 	currentEntryNumChannel chan int
@@ -51,11 +52,12 @@ var runners = &runnerList{
 
 // Run accepts a full HAR and begins to replay the contents at the
 // originally-recorded timing intervals.
-func Run(har *model.Har, executor Executor, transforms []transforms.RequestTransform) *Runner {
+func Run(har *model.Har, executor Executor, transforms []transforms.RequestTransform, velocity float64) *Runner {
 	runner := &Runner{
 		operationChannel:       make(chan Operation, 1),
 		StartTime:              time.Now(),
 		Har:                    har,
+		Velocity:               velocity,
 		Running:                false,
 		DoneChannel:            make(chan bool),
 		currentEntryNumChannel: make(chan int, 1),
@@ -205,6 +207,8 @@ func (r *Runner) updateTransformsFromResponse(response *model.Response) {
 // considering how long after the HAR recording began this particular entry
 // happened, returns a time duration that we should sleep so the next request
 // happens at the right time.
+// This value is adjusted by the Runner's `Velocity`
 func (r *Runner) SleepFor(entry *model.Entry) time.Duration {
-	return r.StartTime.Add(time.Duration(entry.TimeMs) * time.Millisecond).Sub(time.Now())
+	pauseDuration := time.Duration(entry.TimeMs/r.Velocity) * time.Millisecond
+	return r.StartTime.Add(pauseDuration).Sub(time.Now())
 }

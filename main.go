@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/JackDanger/traffic/model"
 	"github.com/JackDanger/traffic/parser"
 	"github.com/JackDanger/traffic/persistence"
 	"github.com/JackDanger/traffic/runner"
@@ -17,8 +19,8 @@ import (
 )
 
 func main() {
-	//runOneHar()
-	runTheWebInterface()
+	runOneHar()
+	//runTheWebInterface()
 }
 
 func runTheWebInterface() {
@@ -44,37 +46,65 @@ func runTheWebInterface() {
 
 func runOneHar() {
 	var file = flag.String("harfile", "", "a .har file to replay")
+	var archiveID = flag.String("archiveID", "", "the id of the archive record to replay")
+	var velocityFlag = flag.String("velocity", "", "how fast to replay the archive (defaults to 1.0)")
+	var concurrencyFlag = flag.String("concurrency", "", "how many threads to run in parallel")
+
 	flag.Parse()
-	if *file == "" {
-		fmt.Printf("Specify a .har file to replay")
+
+	if *file == "" && *archiveID == "" {
+		fmt.Printf("Specify a .har file to replay\n")
 		flag.PrintDefaults()
 		return
 	}
 
-	har, err := parser.HarFromFile(*file)
-
-	if err != nil {
-		fmt.Printf("failed with %s", err)
+	var err error
+	var har *model.Har
+	if *file != "" {
+		har, err = parser.HarFromFile(*file)
+		fatalize(err)
+	} else {
+		db, err := persistence.NewDb()
+		fatalize(err)
+		id, err := strconv.Atoi(*archiveID)
+		fatalize(err)
+		archive, err := db.GetArchive(id)
+		fatalize(err)
+		har, err = archive.Model()
+		fatalize(err)
 	}
 
-	// Turn every host in every URL into localhost
-	transforms := []transforms.RequestTransform{
-		&transforms.ConstantTransform{
-			Search:  "https?://.*/",
-			Replace: "http://localhost:8000/",
-		},
+	if *velocityFlag == "" {
+		*velocityFlag = "1.0"
 	}
+	velocity, err := strconv.ParseFloat(*velocityFlag, 64)
+	fatalize(err)
+
+	if *concurrencyFlag == "" {
+		*concurrencyFlag = "3"
+	}
+	concurrency, err := strconv.Atoi(*concurrencyFlag)
+	fatalize(err)
+
+	//// Turn every host in every URL into localhost
+	//transforms := []transforms.RequestTransform{
+	//	&transforms.ConstantTransform{
+	//		Search:  "https?://.*/",
+	//		Replace: "http://localhost:8000/",
+	//	},
+	//}
+	transforms := []transforms.RequestTransform{}
 
 	startLocalhostServerOnPort("8000")
-	numRunners := 3
 	waitForRunners := sync.WaitGroup{}
-	waitForRunners.Add(numRunners)
+	waitForRunners.Add(concurrency)
 
-	for i := 0; i < numRunners; i++ {
+	for i := 0; i < concurrency; i++ {
 		num := string('0' + i)
 		go func() {
 			name := filepath.Base(*file) + " #" + num
-			<-runner.Run(har, runner.NewHTTPExecutor(name, os.Stdout), transforms).DoneChannel
+			runner := runner.Run(har, runner.NewHTTPExecutor(name, os.Stdout), transforms, velocity)
+			<-runner.DoneChannel
 			waitForRunners.Done()
 		}()
 	}
@@ -100,4 +130,11 @@ func startLocalhostServerOnPort(port string) {
 	// Wait a moment so the server can boot
 	time.Sleep(100 * time.Millisecond)
 	fmt.Println("server is running on ", port)
+}
+
+func fatalize(err error) {
+	if err != nil {
+		fmt.Printf("failed with %s", err)
+		os.Exit(1)
+	}
 }

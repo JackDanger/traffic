@@ -21,4 +21,6 @@ openssl req -x509 -days 365 -key $key -in csr.pem -out $cert
 rm ${key}.locked
 rm csr.pem
 
-echo "A new private key/certificate pair has been generated here for you: $key/$cert"
+echo "A new private key/certificate pair has been generated here for you:"
+echo "  $key"
+echo "  $cert"

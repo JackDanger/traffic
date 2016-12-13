@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -67,11 +68,23 @@ func Index(w http.ResponseWriter, r *http.Request) {
 // Javascript merely renders our one JS file
 func Javascript(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
-	content, err := webFile("javascript.js")
+	libraries, err := webFile("react_and_axios.js")
 	if err != nil {
 		fail(err, w)
 		return
 	}
+	application, err := webFile("javascript.js")
+	if err != nil {
+		fail(err, w)
+		return
+	}
+	content := []byte(strings.Join(
+		[]string{
+			string(libraries),
+			string(application),
+		},
+		";\n",
+	))
 	w.WriteHeader(200)
 	w.Write(content)
 }

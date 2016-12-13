@@ -12,7 +12,7 @@ const Title = () => {
         )
       )
     )
-}
+};
 
 const transformSelect = () => {
   return React.createElement(
@@ -46,7 +46,7 @@ const transformSelect = () => {
       )
     )
   )
-}
+};
 const inputGroup = (inputType, fieldName, refBinding) => {
   return React.createElement(
     'div',
@@ -64,9 +64,48 @@ const inputGroup = (inputType, fieldName, refBinding) => {
       className: 'form-control'
     })
   )
-}
+};
 
-const ArchiveForm = ({ addArchive }) => {
+const CreateArchiveForm = ({ addArchive }) => {
+  // Input tracker
+  let name, description, source, form;
+
+  form = React.createElement('fieldset',
+      { className: 'archive-form' },
+      inputGroup('input', 'name', node => { name = node }),
+      inputGroup('input', 'description', node => { description = node }),
+      inputGroup('textarea', 'source', node => { source = node }),
+      React.createElement('legend',
+        null,
+        'Add a new archive'
+      ),
+      React.createElement('button',
+        {
+          onClick: () => {
+            addArchive(name, description, source);
+          }
+        },
+        'Save HAR as Traffic Archive'
+      )
+    )
+  return React.createElement('div',
+    { className: 'archive-form-wrapper' },
+    form,
+    React.createElement('button',
+      {
+        className: 'show-archive-form',
+        onClick: function onClick() {
+          // WTF please help
+          document.getElementsByClassName("archive-form")[0].style.display = 'block',
+          document.getElementsByClassName("show-archive-form")[0].style.display = 'none'
+        }
+      },
+      "Create new HAR"
+    )
+  )
+};
+
+const EditArchiveForm = ({ addArchive }) => {
   // Input tracker
   let name, description, source;
 
@@ -117,7 +156,7 @@ const TransformForm = ({ archiveId, addTransform }) => {
   );
 };
 
-const Archive = ({ archive, remove }) => {
+const Archive = ({ archive, remove, edit }) => {
   // Each Archive
   return React.createElement(
     'div',
@@ -138,7 +177,11 @@ const Archive = ({ archive, remove }) => {
       React.createElement("div",
         { className: "edit" },
         React.createElement("a",
-          null,
+          {
+            onClick: function onClick() {
+              edit(archive.id)
+            }
+          },
           "edit"
         )
       ),
@@ -161,10 +204,10 @@ const Archive = ({ archive, remove }) => {
   );
 };
 
-const ArchiveList = ({ archives, remove }) => {
+const ArchiveList = ({ archives, remove, edit }) => {
   // Map through the archives
   const archiveNodes = archives.map(archive => {
-    return React.createElement(Archive, { key: archive.id, archive: archive, name: archive.name, remove: remove });
+    return React.createElement(Archive, { key: archive.id, archive: archive, name: archive.name, edit: edit, remove: remove });
   });
   return React.createElement(
     'fieldset',
@@ -217,6 +260,37 @@ class TrafficApp extends React.Component {
       source.value = ''
     });
   }
+  // Add archive handler
+  updateArchive(id, name, description, source) {
+    // Assemble data
+    const archive = {
+      id: id.value,
+      name: name.value,
+      description: description.value,
+      // The HAR source is stored as raw JSON in the database so we
+      // doubly-encode it over HTTP
+      source: JSON.stringify(source.value),
+    };
+    // Update data
+    axios.put(this.apiUrl + '/' + id, archive).then(res => {
+      this.state.data.forEach(a, idx => {
+        if (archive.id == a.id) {
+          this.state.data[idx] = res.data;
+        }
+      });
+      this.setState({ data: this.state.data });
+      id.value = ''
+      name.value = ''
+      description.value = ''
+      source.value = ''
+    });
+  }
+
+  // Show a form for editing the archive source as well as creating transforms
+  handleEdit(id) {
+    console.log("ready to edit")
+    // Show forms??
+  }
 
   // Handle remove
   handleRemove(id) {
@@ -235,12 +309,18 @@ class TrafficApp extends React.Component {
       'div',
       null,
       React.createElement(Title, null),
-      React.createElement(ArchiveForm, { addArchive: this.addArchive.bind(this) }),
+      React.createElement(CreateArchiveForm, { addArchive: this.addArchive.bind(this) }),
       React.createElement(ArchiveList, {
         archives: this.state.data,
+        edit: this.handleEdit.bind(this),
         remove: this.handleRemove.bind(this)
+      }),
+      React.createElement(EditArchiveForm, {
+        updateArchive: this.updateArchive.bind(this),
+        className: 'edit-archive-form hidden'
       })
     );
   }
 }
+
 ReactDOM.render(React.createElement(TrafficApp, null), document.getElementById('container'));

@@ -9,22 +9,31 @@ import (
 	"github.com/JackDanger/traffic/transforms"
 )
 
-// Operation is used to send messages about stopping and starting to the Runner
+// Operation is used to send messages about stopping and starting to the HarRunner
 // goroutine that's running the Har in a loop.
 type Operation uint16
 
 const (
-	// Pause tells the Runner goroutine to sleep until another operation is sent
+	// Pause tells the HarRunner goroutine to sleep until another operation is sent
 	Pause Operation = iota
-	// Stop will halt the goroutine and remove it from the running tasks
-	Stop
+	// Kill will halt the goroutine and remove it from the running tasks
+	Kill
 	// Continue will un-pause a goroutine. Has no effect on non-paused
 	// goroutines.
 	Continue
 )
 
-// Runner encapsulates a single goroutine reading and replaying a HAR
-type Runner struct {
+// Runner expresses the API of running an entire archive
+type Runner interface {
+	Run() error
+	Pause()
+	Continue()
+	Kill()
+	GetDoneChannel() chan bool
+}
+
+// HarRunner encapsulates a single goroutine reading and replaying a HAR
+type HarRunner struct {
 	m                      sync.Mutex
 	Har                    *model.Har
 	Running                bool
@@ -38,22 +47,24 @@ type Runner struct {
 	Executor               Executor
 }
 
+var _ Runner = &HarRunner{}
+
 // This is the list (implemented as a map so we can use instance pointers) of
-// currently-running Runner instances.
+// currently-running HarRunner instances.
 type runnerList struct {
-	items map[*Runner]bool
+	items map[*HarRunner]bool
 	m     sync.Mutex
 }
 
 var runners = &runnerList{
-	items: map[*Runner]bool{},
+	items: map[*HarRunner]bool{},
 	m:     sync.Mutex{},
 }
 
-// Run accepts a full HAR and begins to replay the contents at the
+// NewHarRunner accepts a full HAR and begins to replay the contents at the
 // originally-recorded timing intervals.
-func Run(har *model.Har, executor Executor, transforms []transforms.RequestTransform, velocity float64) *Runner {
-	runner := &Runner{
+func NewHarRunner(har *model.Har, executor Executor, transforms []transforms.RequestTransform, velocity float64) Runner {
+	runner := &HarRunner{
 		operationChannel:       make(chan Operation, 1),
 		StartTime:              time.Now(),
 		Har:                    har,
@@ -65,12 +76,13 @@ func Run(har *model.Har, executor Executor, transforms []transforms.RequestTrans
 		requestTransforms:      transforms,
 	}
 
-	runner.begin()
+	runner.Run()
 
 	return runner
 }
 
-func (r *Runner) begin() error {
+// Run begins to perform http requests and listens for operational commands
+func (r *HarRunner) Run() error {
 	runners.m.Lock()
 	defer runners.m.Unlock()
 	if runners.items[r] {
@@ -99,7 +111,7 @@ func (r *Runner) begin() error {
 					r.m.Lock()
 					r.Running = true
 					r.m.Unlock()
-				} else if operation == Stop {
+				} else if operation == Kill {
 					r.m.Lock()
 					defer r.m.Unlock()
 
@@ -118,7 +130,7 @@ func (r *Runner) begin() error {
 					r.play(entryIndex)
 				} else {
 					// We're done!
-					r.operationChannel <- Stop
+					r.operationChannel <- Kill
 				}
 			}
 		}
@@ -127,7 +139,7 @@ func (r *Runner) begin() error {
 	return nil
 }
 
-func (r *Runner) play(index int) {
+func (r *HarRunner) play(index int) {
 	entry := r.Har.Entries[index]
 	go func() {
 		r.Play(&entry)
@@ -137,7 +149,7 @@ func (r *Runner) play(index int) {
 }
 
 // Play performs the request described in the Entry
-func (r *Runner) Play(entry *model.Entry) error {
+func (r *HarRunner) Play(entry *model.Entry) error {
 	transformedRequest := r.transformRequest(*entry.Request)
 
 	var err error
@@ -167,9 +179,30 @@ func (r *Runner) Play(entry *model.Entry) error {
 	return err
 }
 
+// Pause halts this runner and the goroutine waits for a Continue() or a Kill()
+func (r *HarRunner) Pause() {
+	r.operationChannel <- Pause
+}
+
+// Continue halts this runner if a Pause was sent. It's not an error to call
+// this multiple times, it's idempotent.
+func (r *HarRunner) Continue() {
+	r.operationChannel <- Continue
+}
+
+// Kill halts this runner and stops the running goroutine
+func (r *HarRunner) Kill() {
+	r.operationChannel <- Kill
+}
+
+// GetDoneChannel exposes doneness
+func (r *HarRunner) GetDoneChannel() chan bool {
+	return r.DoneChannel
+}
+
 // transformRequest modifies the request object and sets up a list of
 // transforms to execute against the upcoming response.
-func (r *Runner) transformRequest(request model.Request) model.Request {
+func (r *HarRunner) transformRequest(request model.Request) model.Request {
 	// Clear out any ResponseTransforms set by previous requests. There will
 	// always be exactly as many response transforms as request transforms
 	// because each kind produces the other.
@@ -191,7 +224,7 @@ func (r *Runner) transformRequest(request model.Request) model.Request {
 // really a "transformResponse" though because we don't bother modifying a
 // response we get from a remote server, we just use the data in the response
 // to produce new RequestTransform instances to use in the future.
-func (r *Runner) updateTransformsFromResponse(response *model.Response) {
+func (r *HarRunner) updateTransformsFromResponse(response *model.Response) {
 
 	// There are always exactly as many requestTransforms as responseTransforms
 	r.requestTransforms = make([]transforms.RequestTransform, len(r.responseTransforms))
@@ -209,7 +242,7 @@ func (r *Runner) updateTransformsFromResponse(response *model.Response) {
 // happened, returns a time duration that we should sleep so the next request
 // happens at the right time.
 // This value is adjusted by the Runner's `Velocity`
-func (r *Runner) SleepFor(entry *model.Entry) time.Duration {
+func (r *HarRunner) SleepFor(entry *model.Entry) time.Duration {
 	pauseDuration := time.Duration(entry.TimeMs/r.Velocity) * time.Millisecond
 	return r.StartTime.Add(pauseDuration).Sub(time.Now())
 }

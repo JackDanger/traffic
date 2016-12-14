@@ -14,7 +14,7 @@ func TestPlay(t *testing.T) {
 
 	executor := testExecutor(t)
 	entry := util.MakeEntry()
-	runner := &Runner{
+	runner := &HarRunner{
 		Har: &model.Har{
 			Entries: []model.Entry{*entry},
 		},
@@ -36,10 +36,11 @@ func TestRunWholeHar(t *testing.T) {
 	}
 
 	executor := testExecutor(t)
-	instance := Run(&har, executor, nil)
+	instance := NewHarRunner(&har, executor, nil)
+	instance.Run()
 
 	select {
-	case <-instance.DoneChannel:
+	case <-instance.GetDoneChannel():
 		// wait for instance to send something on it's completion channel
 	}
 	if len(*executor.ProcessedRequests) < entryCount {
@@ -82,10 +83,11 @@ func TestRunWithComplexTranforms(t *testing.T) {
 	//	After:      "-totes",
 	//})
 
-	instance := Run(&har, executor, ts)
+	instance := NewHarRunner(&har, executor, ts)
+	instance.Run()
 
 	select {
-	case <-instance.DoneChannel:
+	case <-instance.GetDoneChannel():
 		// wait for instance to send something on it's completion channel
 	}
 	if len(*executor.ProcessedRequests) < entryCount {

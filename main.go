@@ -103,8 +103,9 @@ func runOneHar() {
 		num := string('0' + i)
 		go func() {
 			name := filepath.Base(*file) + " #" + num
-			runner := runner.Run(har, runner.NewHTTPExecutor(name, os.Stdout), transforms, velocity)
-			<-runner.DoneChannel
+			runner := runner.NewHarRunner(har, runner.NewHTTPExecutor(name, os.Stdout), transforms, velocity)
+			runner.Run()
+			<-runner.GetDoneChannel()
 			waitForRunners.Done()
 		}()
 	}

@@ -73,7 +73,7 @@ func Javascript(w http.ResponseWriter, r *http.Request) {
 		fail(err, w)
 		return
 	}
-	application, err := webFile("javascript.js")
+	application, err := webFile("app.js")
 	if err != nil {
 		fail(err, w)
 		return

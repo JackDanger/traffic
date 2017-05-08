@@ -1,0 +1,25 @@
+{
+  "name": "traffic",
+  "version": "1.0.0",
+  "description": "Concurrently replay real traffic against your web application",
+  "main": "server/_site/javascript.js",
+  "dependencies": {
+    "babel": "^6.23.0"
+  },
+  "devDependencies": {
+    "babel-preset-react": "^6.24.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JackDanger/traffic.git"
+  },
+  "author": "Jack Danger",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JackDanger/traffic/issues"
+  },
+  "homepage": "https://github.com/JackDanger/traffic#readme"
+}

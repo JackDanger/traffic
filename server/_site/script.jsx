@@ -1,52 +1,21 @@
-const Title = () => {
-  return React.createElement(
-      'div',
-      null,
-      React.createElement(
-        'div',
-        null,
-        React.createElement(
-          'h1',
-          null,
-          'Traffic'
-        )
-      )
-    )
-};
+const Title = <div>
+  <div>
+    <h1>Traffic</h1>
+  </div>
+</div>
 
-const transformSelect = () => {
-  return React.createElement(
-    'div',
-    { className: 'inputGroup form-group' },
-    React.createElement('label',
-      {
-        htmlFor: fieldName,
-        className: ''
-      },
-      "Type of Transform:"
-    ),
-    React.createElement('select', {
-      name: 'type'
-    },
-      React.createElement('option',
-        null,
-        "BodyToHeaderTransform"
-      ),
-      React.createElement('option',
-        null,
-        "ConstantTransform"
-      ),
-      React.createElement('option',
-        null,
-        "HeaderToHeaderTransform"
-      ),
-      React.createElement('option',
-        null,
-        "HeaderInjectionTransform"
-      )
-    )
-  )
-};
+const transformSelect = () => <div class='inputGroup form-group'>
+  <label for='type'>
+      Type of Transform:
+  </label>
+  <select name='type'>
+      <option value="BodyToHeaderTransform"/>
+      <option value="ConstantTransform"/>
+      <option value="HeaderToHeaderTransform"/>
+      <option value="HeaderInjectionTransform"/>
+  </select>
+</div>
+
 const inputGroup = (inputType, fieldName, refBinding) => {
   return React.createElement(
     'div',
@@ -105,26 +74,32 @@ const CreateArchiveForm = ({ addArchive }) => {
   )
 };
 
-const EditArchiveForm = ({ addArchive }) => {
+const EditArchiveForm = ({ updateArchive }) => {
   // Input tracker
-  let name, description, source;
+  let id, name, description, source;
 
   return React.createElement(
     'fieldset',
-    { className: 'archiveForm' },
+    { className: 'edit-archive-form hidden' },
+    inputGroup('input', 'id', node => { id = node }),
     inputGroup('input', 'name', node => { name = node }),
     inputGroup('input', 'description', node => { description = node }),
     inputGroup('textarea', 'source', node => { source = node }),
     React.createElement(
       'legend',
       null,
-      'Add a new archive'
+      'Edit'
     ),
     React.createElement(
       'button',
       { onClick: () => {
-          addArchive(name, description, source);
-        } },
+          updateArchive(id, name, description, source);
+          id.value = null
+          name.value = null
+          description.value = null
+          source.value = null
+        }
+      },
       'Save HAR as Traffic Archive'
     )
   );
@@ -149,9 +124,9 @@ const TransformForm = ({ archiveId, addTransform }) => {
     React.createElement(
       'button',
       { onClick: () => {
-          addArchive(name, description, source);
+          addTransform(name, description, source);
         } },
-      'Save HAR as Traffic Archive'
+      'Create new transformation'
     )
   );
 };
@@ -309,7 +284,9 @@ class TrafficApp extends React.Component {
       'div',
       null,
       React.createElement(Title, null),
-      React.createElement(CreateArchiveForm, { addArchive: this.addArchive.bind(this) }),
+      React.createElement(CreateArchiveForm, {
+        addArchive: this.addArchive.bind(this)
+      }),
       React.createElement(ArchiveList, {
         archives: this.state.data,
         edit: this.handleEdit.bind(this),
@@ -317,7 +294,6 @@ class TrafficApp extends React.Component {
       }),
       React.createElement(EditArchiveForm, {
         updateArchive: this.updateArchive.bind(this),
-        className: 'edit-archive-form hidden'
       })
     );
   }

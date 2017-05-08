@@ -18,7 +18,10 @@ import (
 	"github.com/JackDanger/traffic/transforms"
 )
 
+var port = flag.String("port", "8000", "Run server on 0.0.0.0 at this port")
+
 func main() {
+	flag.Parse()
 	runOneHar()
 	//runTheWebInterface()
 }
@@ -29,15 +32,14 @@ func runTheWebInterface() {
 		fmt.Println(err.Error())
 		return
 	}
-	// TODO: extract to CLI flag
-	port := "8000"
 
-	web, err := server.NewServer(port)
+	web, err := server.NewServer(*port)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Printf("Starting Traffic server on https://%s:%s\n", "localhost", port)
+	web.Addr = "0.0.0.0"
+	fmt.Printf("Starting Traffic server on https://%s:%s\n", "0.0.0.0", *port)
 	err = web.ListenAndServeTLS("server/cert.pem", "server/key.pem")
 	if err != nil {
 		fmt.Printf("Error starting server: %#v", err.Error())

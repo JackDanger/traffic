@@ -2,6 +2,7 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/JackDanger/traffic/model"
@@ -12,6 +13,8 @@ func HarFrom(source string) (*model.Har, error) {
 	wrapper := &model.HarWrapper{}
 	err := json.Unmarshal([]byte(source), &wrapper)
 	if err != nil {
+		fmt.Printf(source)
+		panic(err)
 		return nil, err
 	}
 	return wrapper.Har, nil

@@ -36,7 +36,7 @@ func TestRunWholeHar(t *testing.T) {
 	}
 
 	executor := testExecutor(t)
-	instance := NewHarRunner(&har, executor, nil)
+	instance := NewHarRunner(&har, executor, nil, 1.0)
 	instance.Run()
 
 	select {
@@ -83,7 +83,7 @@ func TestRunWithComplexTranforms(t *testing.T) {
 	//	After:      "-totes",
 	//})
 
-	instance := NewHarRunner(&har, executor, ts)
+	instance := NewHarRunner(&har, executor, ts, 1.0)
 	instance.Run()
 
 	select {

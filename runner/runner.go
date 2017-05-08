@@ -238,10 +238,11 @@ func (r *HarRunner) updateTransformsFromResponse(response *model.Response) {
 }
 
 // SleepFor calculates how long has passed since the runner started and,
-// considering how long after the HAR recording began this particular entry
+// considering how long after the HAR recording this particular entry
 // happened, returns a time duration that we should sleep so the next request
 // happens at the right time.
 // This value is adjusted by the Runner's `Velocity`
+// Higher `Velocity` equals a shorter sleep between requests
 func (r *HarRunner) SleepFor(entry *model.Entry) time.Duration {
 	pauseDuration := time.Duration(entry.TimeMs/r.Velocity) * time.Millisecond
 	return r.StartTime.Add(pauseDuration).Sub(time.Now())

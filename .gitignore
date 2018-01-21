@@ -3,3 +3,6 @@ key.pem
 db.sqlite3
 tmp
 node_modules
+*.mdproj
+*.sln
+*.userprefs

@@ -52,7 +52,11 @@ func NewDbForEnv(environment string) (*DB, error) {
 
 	// Wrap the MySQL connection in the Squalor ORM and wrap that in our own DB
 	// type
-	db := &DB{DB: squalor.NewDB(conn)}
+	newDB, err := squalor.NewDB(conn)
+	if err != nil {
+		fmt.Println("persistence/persistence.go:49 ", err)
+	}
+	db := &DB{DB: newDB}
 
 	// TODO: when performance of this method becomes an issue move this to an
 	// external manual step

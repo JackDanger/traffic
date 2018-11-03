@@ -6,3 +6,4 @@ node_modules
 *.mdproj
 *.sln
 *.userprefs
+yarn-error.log

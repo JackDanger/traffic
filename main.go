@@ -50,7 +50,6 @@ func main() {
 		workerFlags.Parse(os.Args[2:])
 	case "runner":
 		runnerFlags.Parse(os.Args[2:])
-		fmt.Printf("main.go:53 %#v\n", runnerFlags)
 		runOneHar()
 	default:
 		fmt.Printf("%q is not valid command.\n", os.Args[1])
@@ -152,7 +151,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 // This starts a server and immediately backgrounds it via a goroutine
 func startLocalhostServerOnPort(port string) {
 	server := http.Server{
-		Addr:    "0.0.0.0:" + port,
+		Addr:    "127.0.0.1:" + port,
 		Handler: &handler{},
 	}
 	go server.ListenAndServe()

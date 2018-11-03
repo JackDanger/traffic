@@ -57,7 +57,7 @@ const CreateArchiveForm = ({ addArchive }) => {
         'Save HAR as Traffic Archive'
       )
     )
-  reurn React.createElement('div',
+  return React.createElement('div',
     { className: 'archive-form-wrapper' },
     form,
     React.createElement('button',
@@ -280,22 +280,28 @@ class TrafficApp extends React.Component {
   }
 
   render() {
-    return React.createElement(
-      'div',
-      null,
-      React.createElement(Title, null),
-      React.createElement(CreateArchiveForm, {
-        addArchive: this.addArchive.bind(this)
-      }),
-      React.createElement(ArchiveList, {
-        archives: this.state.data,
-        edit: this.handleEdit.bind(this),
-        remove: this.handleRemove.bind(this)
-      }),
-      React.createElement(EditArchiveForm, {
-        updateArchive: this.updateArchive.bind(this),
-      })
-    );
+    return (
+      <div>
+      <Title>
+      <CreateArchiveForm addArchive=this.addArchive.bind(this)>
+      </div>
+    )
+    //return React.createElement(
+    //  'div',
+    //  null,
+    //  React.createElement(Title, null),
+    //  React.createElement(CreateArchiveForm, {
+    //    addArchive: this.addArchive.bind(this)
+    //  }),
+    //  React.createElement(ArchiveList, {
+    //    archives: this.state.data,
+    //    edit: this.handleEdit.bind(this),
+    //    remove: this.handleRemove.bind(this)
+    //  }),
+    //  React.createElement(EditArchiveForm, {
+    //    updateArchive: this.updateArchive.bind(this),
+    //  })
+    //);
   }
 }
 

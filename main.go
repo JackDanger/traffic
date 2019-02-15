@@ -3,12 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/JackDanger/traffic/model"
 	"github.com/JackDanger/traffic/parser"
@@ -37,7 +35,7 @@ var concurrencyFlag = runnerFlags.String("concurrency", "", "how many threads to
 
 func main() {
 	// If there's just one argument then assume we need to print usage
-	if len(os.Args) == 1 {
+	if len(os.Args) < 2 {
 		fmt.Println("usage: traffic [server|runner] [args]")
 		return
 	}
@@ -53,6 +51,7 @@ func main() {
 		runOneHar()
 	default:
 		fmt.Printf("%q is not valid command.\n", os.Args[1])
+		fmt.Println("usage: traffic [server|runner] [args]")
 		os.Exit(2)
 	}
 }
@@ -122,7 +121,6 @@ func runOneHar() {
 	//}
 	transforms := []transforms.RequestTransform{}
 
-	startLocalhostServerOnPort("8000")
 	waitForRunners := sync.WaitGroup{}
 	waitForRunners.Add(concurrency)
 
@@ -139,25 +137,6 @@ func runOneHar() {
 
 	waitForRunners.Wait()
 	fmt.Println("All runners completed")
-}
-
-type handler struct{}
-
-// ServeHTTP is a little local server that we can replay our HAR files against
-func (h *handler) ServeHTTP(w http.ResponseWriter, request *http.Request) {
-	w.Write([]byte("nice work!"))
-}
-
-// This starts a server and immediately backgrounds it via a goroutine
-func startLocalhostServerOnPort(port string) {
-	server := http.Server{
-		Addr:    "127.0.0.1:" + port,
-		Handler: &handler{},
-	}
-	go server.ListenAndServe()
-	// Wait a moment so the server can boot
-	time.Sleep(100 * time.Millisecond)
-	fmt.Println("server is running on ", port)
 }
 
 func fatalize(err error) {
